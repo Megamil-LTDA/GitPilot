@@ -15,6 +15,91 @@ class TelegramService {
         return await sendMessage(token: token, chatId: chatId, message: message)
     }
     
+    /// Send notification for new commit detected
+    func sendNewCommitNotification(
+        token: String,
+        chatId: String,
+        repositoryName: String,
+        branch: String,
+        commitHash: String,
+        commitMessage: String,
+        author: String? = nil
+    ) async {
+        let authorLine = author != nil ? "\n👤 *Autor:* \(author!)" : ""
+        
+        let message = """
+        📥 *Novo Commit Detectado*
+        
+        📦 *Repositório:* \(repositoryName)
+        🌿 *Branch:* \(branch)
+        📝 *Commit:* `\(commitHash)`
+        💬 \(commitMessage)\(authorLine)
+        """
+        
+        _ = await sendMessage(token: token, chatId: chatId, message: message)
+    }
+    
+    /// Send notification when a trigger is about to execute
+    func sendTriggerStartNotification(
+        token: String,
+        chatId: String,
+        repositoryName: String,
+        branch: String,
+        commitHash: String,
+        commitMessage: String,
+        triggerName: String
+    ) async {
+        let message = """
+        🚀 *Trigger Iniciando*
+        
+        📦 *Repositório:* \(repositoryName)
+        🌿 *Branch:* \(branch)
+        📝 *Commit:* `\(commitHash)`
+        💬 \(commitMessage)
+        
+        ⚡️ *Trigger:* \(triggerName)
+        """
+        
+        _ = await sendMessage(token: token, chatId: chatId, message: message)
+    }
+    
+    /// Send notification when repository check fails
+    func sendCheckErrorNotification(
+        token: String,
+        chatId: String,
+        repositoryName: String,
+        errorMessage: String? = nil
+    ) async {
+        let errorLine = errorMessage != nil ? "\n📋 *Erro:* \(errorMessage!)" : ""
+        
+        let message = """
+        ⚠️ *Falha na Verificação*
+        
+        📦 *Repositório:* \(repositoryName)
+        🔴 Não foi possível verificar o repositório.\(errorLine)
+        
+        💡 _Verifique sua conexão VPN/Internet_
+        """
+        
+        _ = await sendMessage(token: token, chatId: chatId, message: message)
+    }
+    
+    /// Send notification when repository recovers from error
+    func sendRepositoryRecoveredNotification(
+        token: String,
+        chatId: String,
+        repositoryName: String
+    ) async {
+        let message = """
+        ✅ *Repositório Recuperado*
+        
+        📦 *Repositório:* \(repositoryName)
+        🟢 O repositório voltou a responder normalmente.
+        """
+        
+        _ = await sendMessage(token: token, chatId: chatId, message: message)
+    }
+    
     /// Send build notification using specific token and chat ID
     func sendBuildNotification(
         token: String,

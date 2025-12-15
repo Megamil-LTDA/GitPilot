@@ -31,6 +31,55 @@ class TeamsService {
         return await sendPayload(webhookUrl: webhookUrl, payload: payload)
     }
     
+    /// Send notification when a trigger is about to execute
+    func sendTriggerStartNotification(
+        webhookUrl: String,
+        repositoryName: String,
+        branch: String,
+        commitHash: String,
+        commitMessage: String,
+        triggerName: String
+    ) async {
+        let payload: [String: Any] = [
+            "type": "message",
+            "attachments": [[
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": [
+                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        [
+                            "type": "TextBlock",
+                            "text": "🚀 Trigger Iniciando",
+                            "wrap": true,
+                            "weight": "bolder",
+                            "size": "large",
+                            "color": "accent"
+                        ],
+                        [
+                            "type": "FactSet",
+                            "facts": [
+                                ["title": "📦 Repositório", "value": repositoryName],
+                                ["title": "🌿 Branch", "value": branch],
+                                ["title": "📝 Commit", "value": commitHash],
+                                ["title": "⚡️ Trigger", "value": triggerName]
+                            ]
+                        ],
+                        [
+                            "type": "TextBlock",
+                            "text": "💬 \(commitMessage)",
+                            "wrap": true,
+                            "isSubtle": true
+                        ]
+                    ]
+                ]
+            ]]
+        ]
+        
+        _ = await sendPayload(webhookUrl: webhookUrl, payload: payload)
+    }
+    
     /// Send build notification using specific webhook URL
     func sendBuildNotification(
         webhookUrl: String,

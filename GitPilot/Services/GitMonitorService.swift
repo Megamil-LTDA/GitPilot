@@ -31,6 +31,10 @@ class GitMonitorService: ObservableObject {
     
     private var modelContext: ModelContext?
     
+    // Track error state per repository for anti-spam notifications
+    // true = error was notified, false = recovered/never had error
+    private var errorNotifiedState: [UUID: Bool] = [:]
+    
     private init() { print("🚀 GitMonitorService init") }
     
     func setModelContext(_ context: ModelContext) { self.modelContext = context; print("📦 Context set") }
@@ -166,6 +170,14 @@ class GitMonitorService: ObservableObject {
                 
                 repository.currentStatus = .idle; AppState.shared.globalStatus = .idle
             }
+            
+            // Check if we were in error state and now recovered
+            if errorNotifiedState[repository.id] == true {
+                errorNotifiedState[repository.id] = false
+                // Send recovery notification via Telegram
+                await sendTelegramRecoveryNotification(for: repository)
+            }
+            
             repository.lastError = nil
             try? context.save()
             
@@ -189,6 +201,12 @@ class GitMonitorService: ObservableObject {
             
             repository.currentStatus = .error; repository.lastError = error.localizedDescription
             AppState.shared.lastError = error.localizedDescription; AppState.shared.globalStatus = .error
+            
+            // Anti-spam: only notify on first error
+            if errorNotifiedState[repository.id] != true {
+                errorNotifiedState[repository.id] = true
+                await sendTelegramErrorNotification(for: repository, error: error.localizedDescription)
+            }
         }
         repository.isChecking = false
     }
@@ -207,6 +225,9 @@ class GitMonitorService: ObservableObject {
                 body: "\(commitMessage.prefix(100))",
                 subtitle: repository.name
             )
+            
+            // Send Telegram notification for new commit (no trigger)
+            await sendTelegramNewCommitNotification(for: repository, commitHash: commitHash, commitMessage: commitMessage)
             return
         }
         
@@ -214,6 +235,10 @@ class GitMonitorService: ObservableObject {
         checkLog.result = .triggered
         
         print("✅ Matched: \(matchingTrigger.name)")
+        
+        // Send trigger start notifications (Telegram + Teams)
+        await sendTriggerStartNotifications(for: repository, commitHash: commitHash, commitMessage: commitMessage, triggerName: matchingTrigger.name)
+        
         await executeTrigger(matchingTrigger, for: repository, commitHash: commitHash, commitMessage: commitMessage)
     }
     
@@ -456,5 +481,101 @@ func forceBuild(for repository: WatchedRepository) async {
             repository.currentStatus = .idle
             repository.isChecking = false
         }
+    }
+    
+    // MARK: - Telegram Notification Helpers
+    
+    /// Send new commit notification via Telegram (only Telegram)
+    private func sendTelegramNewCommitNotification(for repository: WatchedRepository, commitHash: String, commitMessage: String) async {
+        guard let group = repository.notificationGroup,
+              group.telegramEnabled,
+              group.telegramConfigured,
+              let token = group.telegramBotToken,
+              let chatId = group.telegramChatId else {
+            print("📭 No Telegram configured for new commit notification")
+            return
+        }
+        
+        await TelegramService.shared.sendNewCommitNotification(
+            token: token,
+            chatId: chatId,
+            repositoryName: repository.name,
+            branch: repository.branch,
+            commitHash: String(commitHash.prefix(7)),
+            commitMessage: commitMessage
+        )
+    }
+    
+    /// Send trigger start notification via Telegram and Teams
+    private func sendTriggerStartNotifications(for repository: WatchedRepository, commitHash: String, commitMessage: String, triggerName: String) async {
+        guard let group = repository.notificationGroup else {
+            print("📭 No notification group for trigger start")
+            return
+        }
+        
+        // Telegram notification
+        if group.telegramEnabled && group.telegramConfigured,
+           let token = group.telegramBotToken,
+           let chatId = group.telegramChatId {
+            await TelegramService.shared.sendTriggerStartNotification(
+                token: token,
+                chatId: chatId,
+                repositoryName: repository.name,
+                branch: repository.branch,
+                commitHash: String(commitHash.prefix(7)),
+                commitMessage: commitMessage,
+                triggerName: triggerName
+            )
+        }
+        
+        // Teams notification
+        if group.teamsEnabled && group.teamsConfigured,
+           let webhookUrl = group.teamsWebhookUrl {
+            await TeamsService.shared.sendTriggerStartNotification(
+                webhookUrl: webhookUrl,
+                repositoryName: repository.name,
+                branch: repository.branch,
+                commitHash: String(commitHash.prefix(7)),
+                commitMessage: commitMessage,
+                triggerName: triggerName
+            )
+        }
+    }
+    
+    /// Send error notification via Telegram (only first error - anti-spam)
+    private func sendTelegramErrorNotification(for repository: WatchedRepository, error: String) async {
+        guard let group = repository.notificationGroup,
+              group.telegramEnabled,
+              group.telegramConfigured,
+              let token = group.telegramBotToken,
+              let chatId = group.telegramChatId else {
+            print("📭 No Telegram configured for error notification")
+            return
+        }
+        
+        await TelegramService.shared.sendCheckErrorNotification(
+            token: token,
+            chatId: chatId,
+            repositoryName: repository.name,
+            errorMessage: error
+        )
+    }
+    
+    /// Send recovery notification via Telegram (only after error)
+    private func sendTelegramRecoveryNotification(for repository: WatchedRepository) async {
+        guard let group = repository.notificationGroup,
+              group.telegramEnabled,
+              group.telegramConfigured,
+              let token = group.telegramBotToken,
+              let chatId = group.telegramChatId else {
+            print("📭 No Telegram configured for recovery notification")
+            return
+        }
+        
+        await TelegramService.shared.sendRepositoryRecoveredNotification(
+            token: token,
+            chatId: chatId,
+            repositoryName: repository.name
+        )
     }
 }
