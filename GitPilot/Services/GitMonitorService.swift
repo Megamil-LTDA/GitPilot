@@ -1,0 +1,460 @@
+//
+//  GitMonitorService.swift
+//  GitPilot
+//
+//  Copyright (c) 2024 Megamil
+//  Contact: eduardo@megamil.com.br
+//
+
+import Foundation
+import SwiftData
+import Combine
+
+@MainActor
+class GitMonitorService: ObservableObject {
+    static let shared = GitMonitorService()
+    
+    @Published var isRunning = false
+    @Published var isBuilding = false // Global build lock
+    @Published var activeTimers: [UUID: Timer] = [:]
+    @Published var lastCheckTimes: [UUID: Date] = [:]
+    @Published var lastCheckResults: [UUID: String] = [:]
+    @Published var checkCount = 0
+    
+    // Live build tracking for real-time output
+    @Published var currentBuildLog: BuildLog?
+    @Published var liveOutput: String = ""
+    
+    private let gitService = GitService.shared
+    private let commandRunner = CommandRunnerService.shared
+    private let notificationService = NotificationService.shared
+    
+    private var modelContext: ModelContext?
+    
+    private init() { print("🚀 GitMonitorService init") }
+    
+    func setModelContext(_ context: ModelContext) { self.modelContext = context; print("📦 Context set") }
+    
+    func startMonitoring(repositories: [WatchedRepository]) {
+        guard !AppState.shared.isPaused else { print("⏸️ Paused"); return }
+        isRunning = true; print("🟢 Starting \(repositories.count) repos")
+        
+        // Request notification permission on start
+        Task { await notificationService.requestPermission() }
+        
+        for repo in repositories where repo.isEnabled { startTimer(for: repo) }
+    }
+    
+    func stopMonitoring() {
+        isRunning = false; print("🔴 Stopping all")
+        for timer in activeTimers.values { timer.invalidate() }
+        activeTimers.removeAll()
+    }
+    
+    func startTimer(for repository: WatchedRepository) {
+        activeTimers[repository.id]?.invalidate()
+        let interval = TimeInterval(repository.checkIntervalSeconds)
+        print("⏱️ Timer for \(repository.name) every \(interval/60)m")
+        
+        let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.checkRepository(repository) }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        activeTimers[repository.id] = timer
+        
+        print("🔍 Initial check \(repository.name)")
+        Task { await checkRepository(repository) }
+    }
+    
+    func stopTimer(for repository: WatchedRepository) {
+        activeTimers[repository.id]?.invalidate()
+        activeTimers.removeValue(forKey: repository.id)
+    }
+    
+    func checkRepository(_ repository: WatchedRepository) async {
+        guard repository.isEnabled else { print("⚠️ \(repository.name) disabled"); return }
+        guard let context = modelContext else { print("❌ No context"); return }
+        
+        // Concurrency Guard
+        if isBuilding {
+            print("⏳ Build in progress. Skipping check for \(repository.name)")
+            return
+        }
+        
+        checkCount += 1; let checkId = checkCount
+        print("🔍 [\(checkId)] Checking \(repository.name) branch:\(repository.branch)...")
+        
+        repository.isChecking = true; repository.currentStatus = .checking; AppState.shared.globalStatus = .checking
+        lastCheckTimes[repository.id] = Date()
+        
+        var gitOutput = ""
+        
+        do {
+            print("🔍 [\(checkId)] Fetching \(repository.remoteName)...")
+            try await gitService.fetch(at: repository.localPath, remote: repository.remoteName)
+            gitOutput += "git fetch \(repository.remoteName) - OK\n"
+            
+            let result = try await gitService.hasNewCommits(at: repository.localPath, branch: repository.branch, remote: repository.remoteName, since: repository.lastCommitHash)
+            gitOutput += "Verificando branch: \(repository.remoteName)/\(repository.branch)\n"
+            gitOutput += "Último hash conhecido: \(repository.lastCommitHash ?? "nenhum")\n"
+            gitOutput += "Hash atual: \(result.latestHash)\n"
+            
+            repository.lastCheckedAt = Date()
+            
+            if result.hasNew {
+                print("✅ [\(checkId)] New: \(result.latestHash.prefix(7)) - \(result.message.prefix(50))")
+                lastCheckResults[repository.id] = "Novo: \(result.latestHash.prefix(7))"
+                gitOutput += "Resultado: NOVO COMMIT DETECTADO\n"
+                gitOutput += "Mensagem: \(result.message)\n"
+                
+                // ALWAYS do git pull when new commit detected
+                print("📥 [\(checkId)] Auto pulling...")
+                var pullSuccess = false
+                
+                // Check if we are already on that commit (local push scenario)
+                let localHead = try? await gitService.getLocalCommitHash(at: repository.localPath)
+                if localHead == result.latestHash {
+                    print("✅ Local already up to date with remote.")
+                    gitOutput += "Local já atualizado (Commit próprio)\n"
+                    pullSuccess = true
+                } else {
+                    do {
+                        try await gitService.pull(at: repository.localPath, remote: repository.remoteName, branch: repository.branch)
+                        gitOutput += "git pull - OK\n"
+                        pullSuccess = true
+                    } catch {
+                        gitOutput += "git pull - ERRO: \(error.localizedDescription)\n"
+                    }
+                }
+                
+                // Log check with new commit
+                let checkLog = CheckLog(
+                    repositoryName: repository.name,
+                    repositoryId: repository.id,
+                    branch: repository.branch,
+                    remote: repository.remoteName,
+                    result: .newCommit,
+                    commitHash: result.latestHash,
+                    commitMessage: result.message,
+                    gitOutput: gitOutput
+                )
+                context.insert(checkLog)
+                
+                if pullSuccess {
+                    repository.lastCommitHash = result.latestHash; repository.lastCommitMessage = result.message
+                    await processTriggers(for: repository, commitHash: result.latestHash, commitMessage: result.message, checkLog: checkLog)
+                } else {
+                    print("❌ Pull failed for detected commit. Not updating hash to allow retry.")
+                    // Do not process triggers if we couldn't update source code
+                }
+            } else {
+                print("ℹ️ [\(checkId)] No new commits")
+                lastCheckResults[repository.id] = "Sem commits novos"
+                gitOutput += "Resultado: Nenhuma alteração\n"
+                
+                // Log check with no changes
+                let checkLog = CheckLog(
+                    repositoryName: repository.name,
+                    repositoryId: repository.id,
+                    branch: repository.branch,
+                    remote: repository.remoteName,
+                    result: .noChanges,
+                    commitHash: result.latestHash,
+                    gitOutput: gitOutput
+                )
+                context.insert(checkLog)
+                
+                repository.currentStatus = .idle; AppState.shared.globalStatus = .idle
+            }
+            repository.lastError = nil
+            try? context.save()
+            
+        } catch {
+            print("❌ [\(checkId)] Error: \(error.localizedDescription)")
+            lastCheckResults[repository.id] = "Erro: \(error.localizedDescription)"
+            gitOutput += "ERRO: \(error.localizedDescription)\n"
+            
+            // Log check with error
+            let checkLog = CheckLog(
+                repositoryName: repository.name,
+                repositoryId: repository.id,
+                branch: repository.branch,
+                remote: repository.remoteName,
+                result: .error,
+                errorMessage: error.localizedDescription,
+                gitOutput: gitOutput
+            )
+            context.insert(checkLog)
+            try? context.save()
+            
+            repository.currentStatus = .error; repository.lastError = error.localizedDescription
+            AppState.shared.lastError = error.localizedDescription; AppState.shared.globalStatus = .error
+        }
+        repository.isChecking = false
+    }
+    
+    private func processTriggers(for repository: WatchedRepository, commitHash: String, commitMessage: String, checkLog: CheckLog) async {
+        let enabledTriggers = repository.triggers.filter { $0.isEnabled }.sorted { $0.priority > $1.priority }
+        print("🔧 Processing \(enabledTriggers.count) triggers")
+        
+        guard let matchingTrigger = enabledTriggers.first(where: { $0.matches(commitMessage: commitMessage) }) else {
+            print("⚠️ No matching trigger for: \(commitMessage)")
+            repository.currentStatus = .idle; AppState.shared.globalStatus = .idle
+            
+            // Send notification for new commit without trigger
+            await notificationService.send(
+                title: "📥 Novo Commit",
+                body: "\(commitMessage.prefix(100))",
+                subtitle: repository.name
+            )
+            return
+        }
+        
+        // Update check log to triggered
+        checkLog.result = .triggered
+        
+        print("✅ Matched: \(matchingTrigger.name)")
+        await executeTrigger(matchingTrigger, for: repository, commitHash: commitHash, commitMessage: commitMessage)
+    }
+    
+    func executeTrigger(_ trigger: TriggerRule, for repository: WatchedRepository, commitHash: String, commitMessage: String) async -> BuildLog? {
+        guard let context = modelContext else { print("❌ No context"); return nil }
+        
+        // Concurrency Guard
+        guard !isBuilding else {
+            print("⚠️ Build already in progress. Queueing or ignoring trigger for \(repository.name)")
+            // Future improvement: Implement a build queue. For now, we skip to avoid conflicts.
+            return nil
+        }
+        
+        print("🏃 Executing: \(trigger.name)")
+        isBuilding = true
+        repository.currentStatus = .building; AppState.shared.globalStatus = .building
+        
+        let buildLog = BuildLog(
+            repositoryId: repository.id,
+            repositoryName: repository.name,
+            triggerName: trigger.name,
+            commitHash: commitHash,
+            commitMessage: commitMessage,
+            command: trigger.command
+        )
+        context.insert(buildLog)
+        
+        // Set as current log for UI
+        DispatchQueue.main.async { [weak self] in
+            self?.currentBuildLog = buildLog
+        }
+        
+        self.liveOutput = ""
+        
+        let workingDir = trigger.effectiveWorkingDirectory ?? repository.localPath
+        
+        do {
+            // Use streaming output callback
+            let result = try await commandRunner.run(command: trigger.command, at: workingDir) { [weak self] newOutput in
+                Task { @MainActor in
+                    self?.liveOutput += newOutput
+                    self?.currentBuildLog?.output = self?.liveOutput ?? ""
+                }
+            }
+            
+            buildLog.complete(exitCode: result.exitCode, output: result.output)
+            repository.currentStatus = result.exitCode == 0 ? .success : .failed
+            AppState.shared.globalStatus = result.exitCode == 0 ? .idle : .error
+            print(result.exitCode == 0 ? "✅ Build OK" : "❌ Build failed \(result.exitCode)")
+            await sendNotifications(for: buildLog, repository: repository, success: result.exitCode == 0)
+        } catch {
+            print("❌ Exec error: \(error.localizedDescription)")
+            buildLog.complete(exitCode: -1, output: error.localizedDescription)
+            repository.currentStatus = .failed; AppState.shared.globalStatus = .error
+            await sendNotifications(for: buildLog, repository: repository, success: false)
+        }
+        
+        try? context.save()
+        
+        isBuilding = false // Release lock
+        
+        // Keep currentBuildLog set for a moment before clearing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+            if self?.currentBuildLog?.id == buildLog.id {
+                self?.currentBuildLog = nil
+            }
+        }
+        
+        return buildLog
+    }
+    
+    // Public method for retry functionality - returns new BuildLog for auto-open
+    @discardableResult
+    func retryBuild(buildLog: BuildLog, repositories: [WatchedRepository]) async -> BuildLog? {
+        guard let repo = repositories.first(where: { $0.id == buildLog.repositoryId }) else {
+            print("❌ Repository not found for retry")
+            return nil
+        }
+        guard let trigger = repo.triggers.first(where: { $0.name == buildLog.triggerName }) else {
+            print("❌ Trigger not found for retry")
+            return nil
+        }
+        
+        print("🔄 Retrying build: \(buildLog.triggerName) for \(repo.name)")
+        return await executeTrigger(trigger, for: repo, commitHash: buildLog.commitHash, commitMessage: buildLog.commitMessage)
+    }
+    
+    private func sendNotifications(for buildLog: BuildLog, repository: WatchedRepository, success: Bool) async {
+        guard let group = repository.notificationGroup else {
+            print("📭 No notification group for \(repository.name)")
+            let settings = SettingsManager.shared.settings
+            if (success && settings.notifyOnSuccess) || (!success && settings.notifyOnFailure) {
+                if settings.nativeNotificationsEnabled {
+                    await notificationService.sendBuildNotification(repositoryName: repository.name, triggerName: buildLog.triggerName, success: success, duration: buildLog.formattedDuration)
+                }
+            }
+            return
+        }
+        
+        let shouldNotify = success ? group.notifyOnSuccess : group.notifyOnFailure
+        guard shouldNotify else { print("🔕 Notifications disabled"); return }
+        
+        print("📨 Sending notifications via group: \(group.name)")
+        
+        let settings = SettingsManager.shared.settings
+        if settings.nativeNotificationsEnabled {
+            await notificationService.sendBuildNotification(repositoryName: repository.name, triggerName: buildLog.triggerName, success: success, duration: buildLog.formattedDuration)
+        }
+        
+        if group.telegramEnabled && group.telegramConfigured {
+            await TelegramService.shared.sendBuildNotification(token: group.telegramBotToken!, chatId: group.telegramChatId!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+        }
+        
+        if group.teamsEnabled && group.teamsConfigured {
+            await TeamsService.shared.sendBuildNotification(webhookUrl: group.teamsWebhookUrl!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+        }
+    }
+    
+    func checkAllNow(repositories: [WatchedRepository]) async {
+        print("🔄 Check all \(repositories.count)")
+        for repo in repositories where repo.isEnabled { await checkRepository(repo) }
+    
+    // Force build for repository (ignoring commit check)
+    }
+
+    
+    // Manual pull with Real-time Log
+    func pullRepository(_ repository: WatchedRepository) async -> CheckLog? {
+        print("⬇️ Pulling repository manually: \(repository.name)")
+        repository.currentStatus = .checking
+        repository.isChecking = true
+        
+        guard let context = modelContext else { return nil }
+        
+        let checkLog = CheckLog(
+            repositoryName: repository.name,
+            repositoryId: repository.id,
+            branch: repository.branch,
+            remote: repository.remoteName,
+            result: .triggered,
+            gitOutput: "Iniciando Git Pull manual...\n"
+        )
+        context.insert(checkLog)
+        
+        // Optimize: Check if local is already up to date not needed here, user forced it.
+        // But maybe good to log.
+        
+        var pullSuccess = false
+        do {
+             // We use commandRunner to get streaming output if possible? 
+             // GitService uses Shell.run which is simple string.
+             // CommandRunner is Actor.
+             // Let's use commandRunner for streaming if possible, but triggers use it.
+             // For consistency with existing logic, let's use gitService but we might not get live stream unless we use commandRunner.
+             // Let's use commandRunner manual usage.
+             
+             let cmd = "git pull \(repository.remoteName) \(repository.branch)"
+             checkLog.gitOutput! += "$ \(cmd)\n"
+             
+             let result = try await commandRunner.run(command: cmd, at: repository.localPath) { output in
+                 Task { @MainActor in
+                     checkLog.gitOutput! += output
+                 }
+             }
+             
+             checkLog.gitOutput! += "\nSaída final: \(result.output)"
+             
+            if result.exitCode == 0 {
+                repository.currentStatus = .idle
+                pullSuccess = true
+                checkLog.result = .newCommit // Or some success status? .triggered is fine or reuse existing.
+                checkLog.errorMessage = nil
+            } else {
+                repository.currentStatus = .error
+                repository.lastError = "Pull failed: \(result.output)"
+                checkLog.result = .error
+                checkLog.errorMessage = result.output
+            }
+        } catch {
+            print("❌ Pull error: \(error)")
+            repository.currentStatus = .error
+            repository.lastError = error.localizedDescription
+            checkLog.result = .error
+            checkLog.errorMessage = error.localizedDescription
+            checkLog.gitOutput! += "\nErro: \(error.localizedDescription)"
+        }
+        
+        repository.isChecking = false
+        try? context.save()
+        return checkLog
+    }
+    
+func forceBuild(for repository: WatchedRepository) async {
+        guard let context = modelContext else { return }
+        
+        if isBuilding {
+            print("⚠️ Build already in progress. Ignoring force build.")
+            return
+        }
+        
+        print("🔨 Forcing build for \(repository.name)")
+        
+        repository.currentStatus = .checking
+        repository.isChecking = true
+        
+        do {
+            let gitCmd = "git log -1 --format=\"%H|%s\""
+            let result = try await commandRunner.run(command: gitCmd, at: repository.localPath)
+            
+            if result.exitCode == 0 {
+                let parts = result.output.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "|", maxSplits: 1).map(String.init)
+                if parts.count >= 2 {
+                    let hash = parts[0]
+                    let message = parts[1]
+                    
+                    let enabledTriggers = repository.triggers.filter { $0.isEnabled }.sorted { $0.priority > $1.priority }
+                    
+                    // Match trigger
+                    if let matchingTrigger = enabledTriggers.first(where: { $0.matches(commitMessage: message) }) {
+                         await executeTrigger(matchingTrigger, for: repository, commitHash: hash, commitMessage: message)
+                    } else if let firstTrigger = enabledTriggers.first {
+                         // Fallback
+                         await executeTrigger(firstTrigger, for: repository, commitHash: hash, commitMessage: message)
+                    } else {
+                        print("⚠️ No triggers found and forced build requires at least one enabled trigger.")
+                        // If no triggers, maybe we should warn the user?
+                        // For now just log.
+                        repository.currentStatus = .idle
+                    }
+                }
+            } else {
+                print("❌ Git log failed: \(result.output)")
+            }
+        } catch {
+            print("❌ Force build error: \(error)")
+        }
+        
+        // Reset status if it's still checking (meaning execution didn't take over)
+        if repository.currentStatus == .checking {
+            repository.currentStatus = .idle
+            repository.isChecking = false
+        }
+    }
+}

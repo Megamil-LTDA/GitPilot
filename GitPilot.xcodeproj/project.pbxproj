@@ -1,0 +1,462 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1001 /* GitPilotApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2001 /* GitPilotApp.swift */; };
+		1002 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2002 /* AppState.swift */; };
+		1010 /* WatchedRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2010 /* WatchedRepository.swift */; };
+		1011 /* TriggerRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2011 /* TriggerRule.swift */; };
+		1012 /* BuildLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2012 /* BuildLog.swift */; };
+		1013 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2013 /* AppSettings.swift */; };
+		1014 /* NotificationGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2014 /* NotificationGroup.swift */; };
+		1015 /* CheckLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2015 /* CheckLog.swift */; };
+		1020 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2020 /* GitService.swift */; };
+		1021 /* GitMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2021 /* GitMonitorService.swift */; };
+		1022 /* CommandRunnerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2022 /* CommandRunnerService.swift */; };
+		1023 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023 /* NotificationService.swift */; };
+		1024 /* TelegramService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2024 /* TelegramService.swift */; };
+		1025 /* TeamsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2025 /* TeamsService.swift */; };
+		1026 /* ExportImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2026 /* ExportImportService.swift */; };
+		1027 /* LocalizationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2027 /* LocalizationManager.swift */; };
+		1030 /* Shell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2030 /* Shell.swift */; };
+		1040 /* StatusItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2040 /* StatusItemView.swift */; };
+		1041 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2041 /* MenuBarView.swift */; };
+		1042 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2042 /* MainWindowView.swift */; };
+		1050 /* RepositoryRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2050 /* RepositoryRowView.swift */; };
+		1051 /* RepositoryFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2051 /* RepositoryFormView.swift */; };
+		1052 /* TriggerRuleFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2052 /* TriggerRuleFormView.swift */; };
+		1053 /* RepositoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2053 /* RepositoryListView.swift */; };
+		1060 /* BuildLogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2060 /* BuildLogsView.swift */; };
+		1061 /* BuildLogDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2061 /* BuildLogDetailView.swift */; };
+		1070 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2070 /* SettingsView.swift */; };
+		1071 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2071 /* GeneralSettingsView.swift */; };
+		1072 /* TelegramSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2072 /* TelegramSettingsView.swift */; };
+		1073 /* TeamsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2073 /* TeamsSettingsView.swift */; };
+		1074 /* DataSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2074 /* DataSettingsView.swift */; };
+		1080 /* NotificationGroupFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2080 /* NotificationGroupFormView.swift */; };
+		1100 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2100 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2001 /* GitPilotApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitPilotApp.swift; sourceTree = "<group>"; };
+		2002 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		2010 /* WatchedRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchedRepository.swift; sourceTree = "<group>"; };
+		2011 /* TriggerRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerRule.swift; sourceTree = "<group>"; };
+		2012 /* BuildLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildLog.swift; sourceTree = "<group>"; };
+		2013 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		2014 /* NotificationGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationGroup.swift; sourceTree = "<group>"; };
+		2015 /* CheckLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckLog.swift; sourceTree = "<group>"; };
+		2020 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
+		2021 /* GitMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitMonitorService.swift; sourceTree = "<group>"; };
+		2022 /* CommandRunnerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandRunnerService.swift; sourceTree = "<group>"; };
+		2023 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		2024 /* TelegramService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramService.swift; sourceTree = "<group>"; };
+		2025 /* TeamsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamsService.swift; sourceTree = "<group>"; };
+		2026 /* ExportImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportImportService.swift; sourceTree = "<group>"; };
+		2027 /* LocalizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
+		2030 /* Shell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shell.swift; sourceTree = "<group>"; };
+		2040 /* StatusItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemView.swift; sourceTree = "<group>"; };
+		2041 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		2042 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		2050 /* RepositoryRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryRowView.swift; sourceTree = "<group>"; };
+		2051 /* RepositoryFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryFormView.swift; sourceTree = "<group>"; };
+		2052 /* TriggerRuleFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerRuleFormView.swift; sourceTree = "<group>"; };
+		2053 /* RepositoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryListView.swift; sourceTree = "<group>"; };
+		2060 /* BuildLogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildLogsView.swift; sourceTree = "<group>"; };
+		2061 /* BuildLogDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildLogDetailView.swift; sourceTree = "<group>"; };
+		2070 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2071 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		2072 /* TelegramSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelegramSettingsView.swift; sourceTree = "<group>"; };
+		2073 /* TeamsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamsSettingsView.swift; sourceTree = "<group>"; };
+		2074 /* DataSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSettingsView.swift; sourceTree = "<group>"; };
+		2080 /* NotificationGroupFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationGroupFormView.swift; sourceTree = "<group>"; };
+		2099 /* GitPilot.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GitPilot.entitlements; sourceTree = "<group>"; };
+		2100 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3000 /* GitPilot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GitPilot.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4000 = {
+			isa = PBXGroup;
+			children = (
+				4001 /* GitPilot */,
+				4002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4001 /* GitPilot */ = {
+			isa = PBXGroup;
+			children = (
+				4010 /* App */,
+				4020 /* Models */,
+				4030 /* Services */,
+				4040 /* Views */,
+				4050 /* Utils */,
+				4060 /* Resources */,
+				2099 /* GitPilot.entitlements */,
+			);
+			path = GitPilot;
+			sourceTree = "<group>";
+		};
+		4002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3000 /* GitPilot.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4010 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				2001 /* GitPilotApp.swift */,
+				2002 /* AppState.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4020 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				2010 /* WatchedRepository.swift */,
+				2011 /* TriggerRule.swift */,
+				2012 /* BuildLog.swift */,
+				2013 /* AppSettings.swift */,
+				2014 /* NotificationGroup.swift */,
+				2015 /* CheckLog.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		4030 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2020 /* GitService.swift */,
+				2021 /* GitMonitorService.swift */,
+				2022 /* CommandRunnerService.swift */,
+				2023 /* NotificationService.swift */,
+				2024 /* TelegramService.swift */,
+				2025 /* TeamsService.swift */,
+				2026 /* ExportImportService.swift */,
+				2027 /* LocalizationManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		4040 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				2042 /* MainWindowView.swift */,
+				4041 /* MenuBar */,
+				4042 /* Repositories */,
+				4043 /* Logs */,
+				4044 /* Settings */,
+				4045 /* Groups */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4041 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				2040 /* StatusItemView.swift */,
+				2041 /* MenuBarView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		4042 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				2050 /* RepositoryRowView.swift */,
+				2051 /* RepositoryFormView.swift */,
+				2052 /* TriggerRuleFormView.swift */,
+				2053 /* RepositoryListView.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		4043 /* Logs */ = {
+			isa = PBXGroup;
+			children = (
+				2060 /* BuildLogsView.swift */,
+				2061 /* BuildLogDetailView.swift */,
+			);
+			path = Logs;
+			sourceTree = "<group>";
+		};
+		4044 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				2070 /* SettingsView.swift */,
+				2071 /* GeneralSettingsView.swift */,
+				2072 /* TelegramSettingsView.swift */,
+				2073 /* TeamsSettingsView.swift */,
+				2074 /* DataSettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		4045 /* Groups */ = {
+			isa = PBXGroup;
+			children = (
+				2080 /* NotificationGroupFormView.swift */,
+			);
+			path = Groups;
+			sourceTree = "<group>";
+		};
+		4050 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				2030 /* Shell.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		4060 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				2100 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5000 /* GitPilot */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6000 /* Build configuration list for PBXNativeTarget "GitPilot" */;
+			buildPhases = (
+				5001 /* Sources */,
+				5002 /* Frameworks */,
+				5003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GitPilot;
+			productName = GitPilot;
+			productReference = 3000 /* GitPilot.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					5000 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 6001 /* Build configuration list for PBXProject "GitPilot" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4000;
+			productRefGroup = 4002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5000 /* GitPilot */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1100 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1001 /* GitPilotApp.swift in Sources */,
+				1002 /* AppState.swift in Sources */,
+				1010 /* WatchedRepository.swift in Sources */,
+				1011 /* TriggerRule.swift in Sources */,
+				1012 /* BuildLog.swift in Sources */,
+				1013 /* AppSettings.swift in Sources */,
+				1014 /* NotificationGroup.swift in Sources */,
+				1015 /* CheckLog.swift in Sources */,
+				1020 /* GitService.swift in Sources */,
+				1021 /* GitMonitorService.swift in Sources */,
+				1022 /* CommandRunnerService.swift in Sources */,
+				1023 /* NotificationService.swift in Sources */,
+				1024 /* TelegramService.swift in Sources */,
+				1025 /* TeamsService.swift in Sources */,
+				1026 /* ExportImportService.swift in Sources */,
+				1027 /* LocalizationManager.swift in Sources */,
+				1030 /* Shell.swift in Sources */,
+				1040 /* StatusItemView.swift in Sources */,
+				1041 /* MenuBarView.swift in Sources */,
+				1042 /* MainWindowView.swift in Sources */,
+				1050 /* RepositoryRowView.swift in Sources */,
+				1051 /* RepositoryFormView.swift in Sources */,
+				1052 /* TriggerRuleFormView.swift in Sources */,
+				1053 /* RepositoryListView.swift in Sources */,
+				1060 /* BuildLogsView.swift in Sources */,
+				1061 /* BuildLogDetailView.swift in Sources */,
+				1070 /* SettingsView.swift in Sources */,
+				1071 /* GeneralSettingsView.swift in Sources */,
+				1072 /* TelegramSettingsView.swift in Sources */,
+				1073 /* TeamsSettingsView.swift in Sources */,
+				1074 /* DataSettingsView.swift in Sources */,
+				1080 /* NotificationGroupFormView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		8000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		8001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		9000 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GitPilot/GitPilot.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = S8T5Q694LC;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.megamil.gitpilot;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GitPilot/GitPilot.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = S8T5Q694LC;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = br.com.megamil.gitpilot;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		6000 /* Build configuration list for PBXNativeTarget "GitPilot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9000 /* Debug */,
+				9001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6001 /* Build configuration list for PBXProject "GitPilot" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8000 /* Debug */,
+				8001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7000 /* Project object */;
+}
