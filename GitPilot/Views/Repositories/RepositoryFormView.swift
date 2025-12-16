@@ -20,6 +20,7 @@ struct RepositoryFormView: View {
     @State private var branch = "main"
     @State private var checkIntervalMinutes = 5
     @State private var isEnabled = true
+    @State private var watchTags = false
     @State private var selectedGroupId: UUID?
     
     @State private var triggers: [TriggerRule] = []
@@ -35,8 +36,18 @@ struct RepositoryFormView: View {
     @State private var availableBranches: [String] = []
     @State private var showingDeleteConfirmation = false
     @State private var hasLoadedBranches = false
+    @State private var branchSearch = ""
+    @State private var showBranchPicker = false
     
     private var isEditing: Bool { repository != nil }
+    
+    private var filteredBranches: [String] {
+        // Don't filter if search matches current branch (user just selected it)
+        if branchSearch.isEmpty || branchSearch == branch {
+            return availableBranches
+        }
+        return availableBranches.filter { $0.localizedCaseInsensitiveContains(branchSearch) }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -103,19 +114,70 @@ struct RepositoryFormView: View {
                                 VStack(alignment: .leading) {
                                     Text(loc.string("repo.branch")).font(.caption).foregroundStyle(.secondary)
                                     if availableBranches.isEmpty {
-                                        TextField("main", text: $branch).textFieldStyle(.roundedBorder).frame(width: 150)
+                                        TextField("main", text: $branch).textFieldStyle(.roundedBorder).frame(width: 200)
                                     } else {
-                                        Picker("", selection: $branch) {
-                                            ForEach(availableBranches, id: \.self) { b in Text(b).tag(b) }
-                                        }.frame(width: 150)
+                                        // Searchable branch picker
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                TextField("🔍 Buscar branch...", text: $branchSearch)
+                                                    .textFieldStyle(.roundedBorder)
+                                                    .frame(width: 180)
+                                                    .onChange(of: branchSearch) { _, newValue in
+                                                        showBranchPicker = !newValue.isEmpty || showBranchPicker
+                                                    }
+                                                    .onTapGesture {
+                                                        showBranchPicker = true
+                                                    }
+                                                Button {
+                                                    showBranchPicker.toggle()
+                                                } label: {
+                                                    Image(systemName: showBranchPicker ? "chevron.up" : "chevron.down")
+                                                }
+                                                .buttonStyle(.borderless)
+                                            }
+                                            
+                                            if showBranchPicker {
+                                                let filtered = filteredBranches
+                                                ScrollView {
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        ForEach(filtered, id: \.self) { b in
+                                                            HStack {
+                                                                Text(b)
+                                                                    .font(.system(.body, design: .monospaced))
+                                                                Spacer()
+                                                                if b == branch {
+                                                                    Image(systemName: "checkmark")
+                                                                        .foregroundStyle(.blue)
+                                                                }
+                                                            }
+                                                            .contentShape(Rectangle())
+                                                            .padding(.horizontal, 8)
+                                                            .padding(.vertical, 4)
+                                                            .background(b == branch ? Color.blue.opacity(0.1) : Color.clear)
+                                                            .cornerRadius(4)
+                                                            .onTapGesture {
+                                                                branch = b
+                                                                branchSearch = b
+                                                                showBranchPicker = false
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                .frame(maxHeight: 150)
+                                                .background(Color(NSColor.controlBackgroundColor))
+                                                .cornerRadius(6)
+                                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                                            }
+                                        }
+                                        .frame(width: 220)
                                     }
                                 }
                                 Spacer()
                             }
                             
-                            Text("\(loc.string("repo.currentBranch")): \(branch)")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
+                            Text("✅ \(loc.string("repo.currentBranch")): \(branch)")
+                                .font(.caption)
+                                .foregroundStyle(.green)
                             
                             Picker(loc.string("repo.interval"), selection: $checkIntervalMinutes) {
                                 Text(loc.string("time.1min")).tag(1)
@@ -127,6 +189,15 @@ struct RepositoryFormView: View {
                             }
                             
                             Toggle(loc.string("repo.enabled"), isOn: $isEnabled)
+                            
+                            Divider()
+                            
+                            Toggle("🏷️ " + loc.string("repo.watchTags"), isOn: $watchTags)
+                            if watchTags {
+                                Text(loc.string("repo.watchTagsInfo"))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     
@@ -292,7 +363,9 @@ struct RepositoryFormView: View {
     private func loadData() {
         guard let r = repository else { return }
         name = r.name; localPath = r.localPath; remoteName = r.remoteName; branch = r.branch
+        branchSearch = r.branch
         checkIntervalMinutes = r.checkIntervalSeconds / 60; isEnabled = r.isEnabled
+        watchTags = r.watchTags
         selectedGroupId = r.notificationGroup?.id; triggers = r.triggers
         hasLoadedBranches = true
         validateRepository()
@@ -304,11 +377,12 @@ struct RepositoryFormView: View {
         
         if let r = repository {
             r.name = name; r.localPath = exp; r.remoteName = remoteName; r.branch = branch
-            r.checkIntervalSeconds = checkIntervalMinutes * 60; r.isEnabled = isEnabled; r.notificationGroup = group
+            r.checkIntervalSeconds = checkIntervalMinutes * 60; r.isEnabled = isEnabled
+            r.watchTags = watchTags; r.notificationGroup = group
             r.triggers.removeAll()
             for t in triggers { t.repository = r; r.triggers.append(t) }
         } else {
-            let nr = WatchedRepository(name: name, localPath: exp, remoteName: remoteName, branch: branch, checkIntervalSeconds: checkIntervalMinutes * 60, isEnabled: isEnabled, notificationGroup: group)
+            let nr = WatchedRepository(name: name, localPath: exp, remoteName: remoteName, branch: branch, checkIntervalSeconds: checkIntervalMinutes * 60, isEnabled: isEnabled, notificationGroup: group, watchTags: watchTags)
             for t in triggers { t.repository = nr; nr.triggers.append(t) }
             modelContext.insert(nr)
         }

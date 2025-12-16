@@ -55,6 +55,7 @@ struct RepositoryExport: Codable {
     let branch: String
     let checkIntervalSeconds: Int
     let isEnabled: Bool
+    let watchTags: Bool?
     let notificationGroupId: String?
     let triggers: [TriggerExport]
     
@@ -65,6 +66,7 @@ struct RepositoryExport: Codable {
         self.branch = repo.branch
         self.checkIntervalSeconds = repo.checkIntervalSeconds
         self.isEnabled = repo.isEnabled
+        self.watchTags = repo.watchTags
         self.notificationGroupId = repo.notificationGroup?.id.uuidString
         self.triggers = repo.triggers.map { TriggerExport(from: $0) }
     }
@@ -143,7 +145,8 @@ class ExportImportService {
                     branch: re.branch,
                     checkIntervalSeconds: re.checkIntervalSeconds,
                     isEnabled: re.isEnabled,
-                    notificationGroup: group
+                    notificationGroup: group,
+                    watchTags: re.watchTags ?? false
                 )
                 
                 for te in re.triggers {

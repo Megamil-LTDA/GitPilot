@@ -122,6 +122,56 @@ actor GitService {
         
         return (hasNew, latestHash, message)
     }
+    
+    // MARK: - Tag Operations
+    
+    /// Fetch tags from remote
+    func fetchTags(at path: String, remote: String = "origin") async throws {
+        let result = try await Shell.run("git fetch \(remote) --tags", at: path)
+        if result.exitCode != 0 {
+            throw GitError.fetchFailed(result.combinedOutput)
+        }
+    }
+    
+    /// Get the latest tag (sorted by version)
+    func getLatestTag(at path: String) async throws -> String? {
+        // First try semantic version sorting
+        var result = try await Shell.run("git tag --sort=-v:refname | head -n 1", at: path)
+        
+        if result.exitCode == 0 {
+            let tag = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+            return tag.isEmpty ? nil : tag
+        }
+        
+        // Fallback to date sorting
+        result = try await Shell.run("git tag --sort=-creatordate | head -n 1", at: path)
+        if result.exitCode == 0 {
+            let tag = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+            return tag.isEmpty ? nil : tag
+        }
+        
+        return nil
+    }
+    
+    /// Check for new tags since the last known tag
+    func hasNewTags(at path: String, remote: String = "origin", since lastTag: String?) async throws -> (hasNew: Bool, latestTag: String?, tagName: String) {
+        // Fetch latest tags
+        try await fetchTags(at: path, remote: remote)
+        
+        // Get latest tag
+        guard let latestTag = try await getLatestTag(at: path) else {
+            return (false, nil, "")
+        }
+        
+        // If no previous tag, this is new
+        guard let previousTag = lastTag else {
+            return (true, latestTag, latestTag)
+        }
+        
+        // Compare
+        let hasNew = latestTag != previousTag
+        return (hasNew, latestTag, hasNew ? latestTag : "")
+    }
 }
 
 // MARK: - Errors

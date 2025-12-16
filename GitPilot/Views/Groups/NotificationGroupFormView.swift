@@ -24,6 +24,12 @@ struct NotificationGroupFormView: View {
     @State private var notifyOnFailure = true
     @State private var showingDeleteConfirmation = false
     
+    // Test states
+    @State private var isTelegramTesting = false
+    @State private var telegramTestResult: String?
+    @State private var isTeamsTesting = false
+    @State private var teamsTestResult: String?
+    
     private var isEditing: Bool { group != nil }
     
     var body: some View {
@@ -97,6 +103,26 @@ struct NotificationGroupFormView: View {
                         .textFieldStyle(.roundedBorder)
                     TextField(loc.string("telegram.chatId"), text: $telegramChatId)
                         .textFieldStyle(.roundedBorder)
+                    
+                    HStack {
+                        Button {
+                            testTelegram()
+                        } label: {
+                            if isTelegramTesting {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label(loc.string("action.test"), systemImage: "paperplane")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(telegramBotToken.isEmpty || telegramChatId.isEmpty || isTelegramTesting)
+                        
+                        if let result = telegramTestResult {
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(result.contains("✅") ? .green : .red)
+                        }
+                    }
                 }
             }
         }
@@ -109,6 +135,26 @@ struct NotificationGroupFormView: View {
                 if teamsEnabled {
                     TextField(loc.string("teams.webhookUrl"), text: $teamsWebhookUrl)
                         .textFieldStyle(.roundedBorder)
+                    
+                    HStack {
+                        Button {
+                            testTeams()
+                        } label: {
+                            if isTeamsTesting {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label(loc.string("action.test"), systemImage: "paperplane")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(teamsWebhookUrl.isEmpty || isTeamsTesting)
+                        
+                        if let result = teamsTestResult {
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(result.contains("✅") ? .green : .red)
+                        }
+                    }
                 }
             }
         }
@@ -187,6 +233,51 @@ struct NotificationGroupFormView: View {
     private func deleteGroup() {
         guard let g = group else { return }
         modelContext.delete(g); try? modelContext.save(); dismiss()
+    }
+    
+    // MARK: - Test Functions
+    
+    private func testTelegram() {
+        isTelegramTesting = true
+        telegramTestResult = nil
+        
+        Task {
+            let result = await TelegramService.shared.testConnection(
+                token: telegramBotToken,
+                chatId: telegramChatId
+            )
+            
+            await MainActor.run {
+                isTelegramTesting = false
+                switch result {
+                case .success:
+                    telegramTestResult = "✅ Enviado!"
+                case .failure:
+                    telegramTestResult = "❌ Falhou"
+                }
+            }
+        }
+    }
+    
+    private func testTeams() {
+        isTeamsTesting = true
+        teamsTestResult = nil
+        
+        Task {
+            let result = await TeamsService.shared.testConnection(
+                webhookUrl: teamsWebhookUrl
+            )
+            
+            await MainActor.run {
+                isTeamsTesting = false
+                switch result {
+                case .success:
+                    teamsTestResult = "✅ Enviado!"
+                case .failure:
+                    teamsTestResult = "❌ Falhou"
+                }
+            }
+        }
     }
 }
 

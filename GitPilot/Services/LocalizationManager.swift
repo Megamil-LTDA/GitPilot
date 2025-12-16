@@ -143,6 +143,8 @@ struct Strings {
         "repo.accessConfirmed": "Acesso ao repositório remoto confirmado com sucesso!",
         "repo.accessFailed": "Falha ao acessar remoto",
         "repo.addTrigger": "Adicionar Trigger",
+        "repo.watchTags": "Monitorar Tags",
+        "repo.watchTagsInfo": "Ao invés de monitorar commits na branch, detecta novas tags. Use padrões como -prod, -dev, -hml no nome da tag para filtrar nos triggers.",
         
         // Groups
         "group.title": "Grupos de Notificação",
@@ -305,6 +307,8 @@ struct Strings {
         "repo.accessConfirmed": "Remote repository access confirmed successfully!",
         "repo.accessFailed": "Failed to access remote",
         "repo.addTrigger": "Add Trigger",
+        "repo.watchTags": "Watch Tags",
+        "repo.watchTagsInfo": "Instead of monitoring commits on a branch, detects new tags. Use patterns like -prod, -dev, -hml in tag names to filter in triggers.",
         
         // Groups
         "group.title": "Notification Groups",
@@ -480,6 +484,8 @@ struct Strings {
         "repo.accessConfirmed": "¡Acceso al repositorio remoto confirmado con éxito!",
         "repo.accessFailed": "Error al acceder al remoto",
         "repo.addTrigger": "Agregar Trigger",
+        "repo.watchTags": "Monitorear Tags",
+        "repo.watchTagsInfo": "En lugar de monitorear commits en la rama, detecta nuevas tags. Use patrones como -prod, -dev, -hml en los nombres de tags para filtrar en triggers.",
         
         // Groups
         "group.title": "Grupos de Notificación",

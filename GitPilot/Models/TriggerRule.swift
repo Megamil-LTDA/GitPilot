@@ -50,8 +50,11 @@ final class TriggerRule {
             return true
         }
         
-        // Check if commit message contains the flag
-        return commitMessage.localizedCaseInsensitiveContains(flag)
+        // Support multiple flags separated by comma (OR logic)
+        let flags = flag.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        
+        // Check if commit message contains ANY of the flags
+        return flags.contains { commitMessage.localizedCaseInsensitiveContains($0) }
     }
 }
 

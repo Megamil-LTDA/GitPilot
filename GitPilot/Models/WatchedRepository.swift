@@ -25,6 +25,10 @@ final class WatchedRepository {
     var lastError: String?
     var createdAt: Date
     
+    // Tag monitoring
+    var watchTags: Bool
+    var lastKnownTag: String?
+    
     // Relationships
     @Relationship(deleteRule: .cascade)
     var triggers: [TriggerRule] = []
@@ -43,7 +47,8 @@ final class WatchedRepository {
         branch: String = "main",
         checkIntervalSeconds: Int = 300,
         isEnabled: Bool = true,
-        notificationGroup: NotificationGroup? = nil
+        notificationGroup: NotificationGroup? = nil,
+        watchTags: Bool = false
     ) {
         self.id = UUID()
         self.name = name
@@ -53,6 +58,7 @@ final class WatchedRepository {
         self.checkIntervalSeconds = checkIntervalSeconds
         self.isEnabled = isEnabled
         self.notificationGroup = notificationGroup
+        self.watchTags = watchTags
         self.createdAt = Date()
     }
     

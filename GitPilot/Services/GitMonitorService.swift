@@ -86,13 +86,24 @@ class GitMonitorService: ObservableObject {
         }
         
         checkCount += 1; let checkId = checkCount
-        print("🔍 [\(checkId)] Checking \(repository.name) branch:\(repository.branch)...")
+        let checkType = repository.watchTags ? "tags" : "branch:\(repository.branch)"
+        print("🔍 [\(checkId)] Checking \(repository.name) \(checkType)...")
         
         repository.isChecking = true; repository.currentStatus = .checking; AppState.shared.globalStatus = .checking
         lastCheckTimes[repository.id] = Date()
         
         var gitOutput = ""
         
+        // Branch: watchTags determines if we check for new tags or new commits
+        if repository.watchTags {
+            await checkRepositoryTags(repository, context: context, checkId: checkId, gitOutput: &gitOutput)
+        } else {
+            await checkRepositoryCommits(repository, context: context, checkId: checkId, gitOutput: &gitOutput)
+        }
+    }
+    
+    /// Check repository for new commits (original behavior)
+    private func checkRepositoryCommits(_ repository: WatchedRepository, context: ModelContext, checkId: Int, gitOutput: inout String) async {
         do {
             print("🔍 [\(checkId)] Fetching \(repository.remoteName)...")
             try await gitService.fetch(at: repository.localPath, remote: repository.remoteName)
@@ -191,6 +202,100 @@ class GitMonitorService: ObservableObject {
                 repositoryName: repository.name,
                 repositoryId: repository.id,
                 branch: repository.branch,
+                remote: repository.remoteName,
+                result: .error,
+                errorMessage: error.localizedDescription,
+                gitOutput: gitOutput
+            )
+            context.insert(checkLog)
+            try? context.save()
+            
+            repository.currentStatus = .error; repository.lastError = error.localizedDescription
+            AppState.shared.lastError = error.localizedDescription; AppState.shared.globalStatus = .error
+            
+            // Anti-spam: only notify on first error
+            if errorNotifiedState[repository.id] != true {
+                errorNotifiedState[repository.id] = true
+                await sendTelegramErrorNotification(for: repository, error: error.localizedDescription)
+            }
+        }
+        repository.isChecking = false
+    }
+    
+    /// Check repository for new tags
+    private func checkRepositoryTags(_ repository: WatchedRepository, context: ModelContext, checkId: Int, gitOutput: inout String) async {
+        do {
+            print("🏷️ [\(checkId)] Fetching tags from \(repository.remoteName)...")
+            let result = try await gitService.hasNewTags(at: repository.localPath, remote: repository.remoteName, since: repository.lastKnownTag)
+            gitOutput += "git fetch --tags \(repository.remoteName) - OK\n"
+            gitOutput += "Última tag conhecida: \(repository.lastKnownTag ?? "nenhuma")\n"
+            gitOutput += "Tag atual: \(result.latestTag ?? "nenhuma")\n"
+            
+            repository.lastCheckedAt = Date()
+            
+            if result.hasNew {
+                let tagName = result.tagName
+                print("🏷️ [\(checkId)] New tag detected: \(tagName)")
+                lastCheckResults[repository.id] = "Nova tag: \(tagName)"
+                gitOutput += "Resultado: NOVA TAG DETECTADA\n"
+                gitOutput += "Tag: \(tagName)\n"
+                
+                // Log check with new tag
+                let checkLog = CheckLog(
+                    repositoryName: repository.name,
+                    repositoryId: repository.id,
+                    branch: "tags",
+                    remote: repository.remoteName,
+                    result: .newCommit,
+                    commitHash: tagName,
+                    commitMessage: "Tag: \(tagName)",
+                    gitOutput: gitOutput
+                )
+                context.insert(checkLog)
+                
+                // Update last known tag
+                repository.lastKnownTag = result.latestTag
+                
+                // Process triggers using tag name as "commit message" for matching
+                await processTriggers(for: repository, commitHash: tagName, commitMessage: tagName, checkLog: checkLog)
+            } else {
+                print("ℹ️ [\(checkId)] No new tags")
+                lastCheckResults[repository.id] = "Sem tags novas"
+                gitOutput += "Resultado: Nenhuma tag nova\n"
+                
+                // Log check with no changes
+                let checkLog = CheckLog(
+                    repositoryName: repository.name,
+                    repositoryId: repository.id,
+                    branch: "tags",
+                    remote: repository.remoteName,
+                    result: .noChanges,
+                    commitHash: result.latestTag ?? "",
+                    gitOutput: gitOutput
+                )
+                context.insert(checkLog)
+                
+                repository.currentStatus = .idle; AppState.shared.globalStatus = .idle
+            }
+            
+            // Check if we were in error state and now recovered
+            if errorNotifiedState[repository.id] == true {
+                errorNotifiedState[repository.id] = false
+                await sendTelegramRecoveryNotification(for: repository)
+            }
+            
+            repository.lastError = nil
+            try? context.save()
+            
+        } catch {
+            print("❌ [\(checkId)] Tag check error: \(error.localizedDescription)")
+            lastCheckResults[repository.id] = "Erro: \(error.localizedDescription)"
+            gitOutput += "ERRO: \(error.localizedDescription)\n"
+            
+            let checkLog = CheckLog(
+                repositoryName: repository.name,
+                repositoryId: repository.id,
+                branch: "tags",
                 remote: repository.remoteName,
                 result: .error,
                 errorMessage: error.localizedDescription,
