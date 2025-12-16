@@ -172,6 +172,44 @@ actor GitService {
         let hasNew = latestTag != previousTag
         return (hasNew, latestTag, hasNew ? latestTag : "")
     }
+    
+    /// Get recent commits formatted for changelog
+    /// Returns commits in format: "- <hash_short> <message> (<author>)" separated by newlines
+    func getRecentCommits(at path: String, count: Int = 10, since hash: String? = nil) async throws -> String {
+        var command = "git log -\(count) --pretty=format:'- %h %s (%an)'"
+        
+        // If we have a previous hash, get commits since then
+        if let previousHash = hash {
+            command = "git log \(previousHash)..HEAD --pretty=format:'- %h %s (%an)'"
+        }
+        
+        let result = try await Shell.run(command, at: path)
+        guard result.exitCode == 0 else {
+            return ""
+        }
+        
+        return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    /// Get recent commits as a single line (for changelog parameters)
+    func getRecentCommitsOneLine(at path: String, count: Int = 5, since hash: String? = nil) async throws -> String {
+        var command = "git log -\(count) --pretty=format:'%h: %s (%an)'"
+        
+        if let previousHash = hash {
+            command = "git log \(previousHash)..HEAD --pretty=format:'%h: %s (%an)'"
+        }
+        
+        let result = try await Shell.run(command, at: path)
+        guard result.exitCode == 0 else {
+            return ""
+        }
+        
+        // Join with pipes for single-line format
+        return result.output
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: "\n")
+            .joined(separator: " | ")
+    }
 }
 
 // MARK: - Errors

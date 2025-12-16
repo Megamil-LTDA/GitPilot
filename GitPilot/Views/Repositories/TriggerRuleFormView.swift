@@ -43,18 +43,34 @@ struct TriggerRuleFormView: View {
                                 Text(loc.string("trigger.flag")).font(.caption).foregroundStyle(.secondary)
                                 TextField(loc.string("trigger.flagPlaceholder"), text: $commitFlag)
                                     .textFieldStyle(.roundedBorder)
+                                Text("💡 Use vírgula para múltiplas flags: --prod, --deploy")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(loc.string("trigger.command")).font(.caption).foregroundStyle(.secondary)
-                                TextField(loc.string("trigger.commandPlaceholder"), text: $command)
-                                    .textFieldStyle(.roundedBorder)
+                                TextEditor(text: $command)
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(minHeight: 100, maxHeight: 200)
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                                Text("💡 Use \\n para múltiplos comandos ou scripts complexos")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(loc.string("trigger.workDir")).font(.caption).foregroundStyle(.secondary)
-                                TextField(loc.string("trigger.workDirPlaceholder"), text: $workingDirectory)
-                                    .textFieldStyle(.roundedBorder)
+                                HStack {
+                                    TextField(loc.string("trigger.workDirPlaceholder"), text: $workingDirectory)
+                                        .textFieldStyle(.roundedBorder)
+                                    Button {
+                                        selectWorkingDirectory()
+                                    } label: {
+                                        Image(systemName: "folder")
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
                             }
                         }
                     }
@@ -114,5 +130,17 @@ struct TriggerRuleFormView: View {
         t.isEnabled = isEnabled
         onSave(t)
         dismiss()
+    }
+    
+    private func selectWorkingDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Selecione o diretório de trabalho para o comando"
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            workingDirectory = url.path
+        }
     }
 }

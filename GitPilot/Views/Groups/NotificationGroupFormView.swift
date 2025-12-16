@@ -15,13 +15,26 @@ struct NotificationGroupFormView: View {
     
     @State private var name = ""
     @State private var color = "#007AFF"
+    
+    // Telegram
     @State private var telegramEnabled = false
     @State private var telegramBotToken = ""
     @State private var telegramChatId = ""
+    @State private var telegramNotifyNewCommit = true
+    @State private var telegramNotifyTriggerStart = true
+    @State private var telegramNotifySuccess = true
+    @State private var telegramNotifyFailure = true
+    @State private var telegramNotifyError = true
+    
+    // Teams
     @State private var teamsEnabled = false
     @State private var teamsWebhookUrl = ""
-    @State private var notifyOnSuccess = true
-    @State private var notifyOnFailure = true
+    @State private var teamsNotifyNewCommit = false
+    @State private var teamsNotifyTriggerStart = true
+    @State private var teamsNotifySuccess = true
+    @State private var teamsNotifyFailure = true
+    @State private var teamsNotifyError = true
+    
     @State private var showingDeleteConfirmation = false
     
     // Test states
@@ -40,7 +53,7 @@ struct NotificationGroupFormView: View {
             Divider()
             footerView
         }
-        .frame(minWidth: 450, minHeight: 500)
+        .frame(minWidth: 500, minHeight: 650)
         .alert(loc.string("action.delete") + "?", isPresented: $showingDeleteConfirmation) {
             Button(loc.string("action.cancel"), role: .cancel) {}
             Button(loc.string("action.delete"), role: .destructive) { deleteGroup() }
@@ -63,7 +76,6 @@ struct NotificationGroupFormView: View {
                 infoSection
                 telegramSection
                 teamsSection
-                preferencesSection
                 deleteSection
             }
             .padding()
@@ -95,9 +107,10 @@ struct NotificationGroupFormView: View {
     }
     
     private var telegramSection: some View {
-        GroupBox("Telegram") {
+        GroupBox("📱 Telegram") {
             VStack(alignment: .leading, spacing: 8) {
                 Toggle(loc.string("common.enable"), isOn: $telegramEnabled)
+                
                 if telegramEnabled {
                     SecureField(loc.string("telegram.botToken"), text: $telegramBotToken)
                         .textFieldStyle(.roundedBorder)
@@ -123,15 +136,33 @@ struct NotificationGroupFormView: View {
                                 .foregroundStyle(result.contains("✅") ? .green : .red)
                         }
                     }
+                    
+                    Divider()
+                    
+                    Text("Notificar via Telegram:").font(.caption).foregroundStyle(.secondary)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("📥 Novo commit/tag detectado", isOn: $telegramNotifyNewCommit)
+                            .controlSize(.small)
+                        Toggle("🚀 Trigger iniciando", isOn: $telegramNotifyTriggerStart)
+                            .controlSize(.small)
+                        Toggle("✅ Build com sucesso", isOn: $telegramNotifySuccess)
+                            .controlSize(.small)
+                        Toggle("❌ Build com falha", isOn: $telegramNotifyFailure)
+                            .controlSize(.small)
+                        Toggle("⚠️ Erro ao consultar Git", isOn: $telegramNotifyError)
+                            .controlSize(.small)
+                    }
                 }
             }
         }
     }
     
     private var teamsSection: some View {
-        GroupBox("Teams") {
+        GroupBox("💼 Teams / Power Automate") {
             VStack(alignment: .leading, spacing: 8) {
                 Toggle(loc.string("common.enable"), isOn: $teamsEnabled)
+                
                 if teamsEnabled {
                     TextField(loc.string("teams.webhookUrl"), text: $teamsWebhookUrl)
                         .textFieldStyle(.roundedBorder)
@@ -155,16 +186,24 @@ struct NotificationGroupFormView: View {
                                 .foregroundStyle(result.contains("✅") ? .green : .red)
                         }
                     }
+                    
+                    Divider()
+                    
+                    Text("Notificar via Teams:").font(.caption).foregroundStyle(.secondary)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("📥 Novo commit/tag detectado", isOn: $teamsNotifyNewCommit)
+                            .controlSize(.small)
+                        Toggle("🚀 Trigger iniciando", isOn: $teamsNotifyTriggerStart)
+                            .controlSize(.small)
+                        Toggle("✅ Build com sucesso", isOn: $teamsNotifySuccess)
+                            .controlSize(.small)
+                        Toggle("❌ Build com falha", isOn: $teamsNotifyFailure)
+                            .controlSize(.small)
+                        Toggle("⚠️ Erro ao consultar Git", isOn: $teamsNotifyError)
+                            .controlSize(.small)
+                    }
                 }
-            }
-        }
-    }
-    
-    private var preferencesSection: some View {
-        GroupBox(loc.string("common.preferences")) {
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle(loc.string("settings.notifySuccess"), isOn: $notifyOnSuccess)
-                Toggle(loc.string("settings.notifyFailure"), isOn: $notifyOnFailure)
             }
         }
     }
@@ -198,10 +237,19 @@ struct NotificationGroupFormView: View {
         telegramEnabled = g.telegramEnabled
         telegramBotToken = g.telegramBotToken ?? ""
         telegramChatId = g.telegramChatId ?? ""
+        telegramNotifyNewCommit = g.telegramNotifyNewCommit
+        telegramNotifyTriggerStart = g.telegramNotifyTriggerStart
+        telegramNotifySuccess = g.telegramNotifySuccess
+        telegramNotifyFailure = g.telegramNotifyFailure
+        telegramNotifyError = g.telegramNotifyError
+        
         teamsEnabled = g.teamsEnabled
         teamsWebhookUrl = g.teamsWebhookUrl ?? ""
-        notifyOnSuccess = g.notifyOnSuccess
-        notifyOnFailure = g.notifyOnFailure
+        teamsNotifyNewCommit = g.teamsNotifyNewCommit
+        teamsNotifyTriggerStart = g.teamsNotifyTriggerStart
+        teamsNotifySuccess = g.teamsNotifySuccess
+        teamsNotifyFailure = g.teamsNotifyFailure
+        teamsNotifyError = g.teamsNotifyError
     }
     
     private func save() {
@@ -210,10 +258,19 @@ struct NotificationGroupFormView: View {
             g.telegramEnabled = telegramEnabled
             g.telegramBotToken = telegramEnabled ? telegramBotToken : nil
             g.telegramChatId = telegramEnabled ? telegramChatId : nil
+            g.telegramNotifyNewCommit = telegramNotifyNewCommit
+            g.telegramNotifyTriggerStart = telegramNotifyTriggerStart
+            g.telegramNotifySuccess = telegramNotifySuccess
+            g.telegramNotifyFailure = telegramNotifyFailure
+            g.telegramNotifyError = telegramNotifyError
+            
             g.teamsEnabled = teamsEnabled
             g.teamsWebhookUrl = teamsEnabled ? teamsWebhookUrl : nil
-            g.notifyOnSuccess = notifyOnSuccess
-            g.notifyOnFailure = notifyOnFailure
+            g.teamsNotifyNewCommit = teamsNotifyNewCommit
+            g.teamsNotifyTriggerStart = teamsNotifyTriggerStart
+            g.teamsNotifySuccess = teamsNotifySuccess
+            g.teamsNotifyFailure = teamsNotifyFailure
+            g.teamsNotifyError = teamsNotifyError
         } else {
             let ng = NotificationGroup(
                 name: name, color: color,
@@ -221,10 +278,18 @@ struct NotificationGroupFormView: View {
                 telegramChatId: telegramEnabled ? telegramChatId : nil,
                 telegramEnabled: telegramEnabled,
                 teamsWebhookUrl: teamsEnabled ? teamsWebhookUrl : nil,
-                teamsEnabled: teamsEnabled,
-                notifyOnSuccess: notifyOnSuccess,
-                notifyOnFailure: notifyOnFailure
+                teamsEnabled: teamsEnabled
             )
+            ng.telegramNotifyNewCommit = telegramNotifyNewCommit
+            ng.telegramNotifyTriggerStart = telegramNotifyTriggerStart
+            ng.telegramNotifySuccess = telegramNotifySuccess
+            ng.telegramNotifyFailure = telegramNotifyFailure
+            ng.telegramNotifyError = telegramNotifyError
+            ng.teamsNotifyNewCommit = teamsNotifyNewCommit
+            ng.teamsNotifyTriggerStart = teamsNotifyTriggerStart
+            ng.teamsNotifySuccess = teamsNotifySuccess
+            ng.teamsNotifyFailure = teamsNotifyFailure
+            ng.teamsNotifyError = teamsNotifyError
             modelContext.insert(ng)
         }
         try? modelContext.save(); dismiss()

@@ -1,6 +1,6 @@
 <div align="center">
 
-# � GitPilot
+# ✈️ GitPilot
 
 **Automated Git Monitoring & Build Triggering for macOS**
 
@@ -22,10 +22,13 @@
 
 | Feature | Description |
 |---------|-------------|
-| 🔍 **Smart Monitoring** | Continuously monitors Git repositories for new commits |
+| 🔍 **Smart Monitoring** | Continuously monitors Git repositories for new commits or tags |
 | ⚡ **Trigger Rules** | Execute custom commands based on commit message patterns |
+| 🏷️ **Tag Monitoring** | Watch for new tags (e.g., `-prod`, `-dev`) instead of commits |
+| 📝 **Template Variables** | Use `{{commits}}`, `{{branch}}`, etc. in your commands |
 | 🔨 **Force Build** | Manually trigger builds/tests using the latest commit without needing a new push |
 | 📬 **Notifications** | Send alerts via Telegram, Microsoft Teams, or native macOS notifications |
+| 🎛️ **Granular Notifications** | Configure which notification types each messenger receives |
 | 👥 **Notification Groups** | Organize notification settings per project or team |
 | 🌍 **Multi-language** | Fully translated to 🇧🇷 Portuguese, 🇺🇸 English, and 🇪🇸 Spanish |
 | 📤 **Export/Import** | Share configurations with your team via JSON |
@@ -61,11 +64,72 @@ pkill -9 -f GitPilot
 
 ### First Steps
 
-1. **Click the "🚀" icon** in your menu bar (Rocket icon)
+1. **Click the "✈️" icon** in your menu bar
 2. **Add a Repository** → Select your local Git folder
 3. **Create a Trigger** → Define the command to run (e.g., `sh deploy.sh`)
 4. **Set up Notifications** → Create a group with Telegram/Teams webhooks
 5. **Start Monitoring** → GitPilot will check for new commits automatically
+
+---
+
+## 📝 Template Variables
+
+Use these variables in your trigger commands — they'll be replaced with actual values at runtime:
+
+| Variable | Description | Example Output |
+|----------|-------------|----------------|
+| `{{commits}}` | Last 5 commits with author (multi-line) | `- abc1234 Fix bug (Eduardo)` |
+| `{{commits_oneline}}` | Last 5 commits (single line, pipe-separated) | `abc1234: Fix bug (Eduardo) \| def5678: Add feature (João)` |
+| `{{commit_hash}}` | Short commit hash (7 chars) | `abc1234` |
+| `{{commit_hash_full}}` | Full commit hash | `abc1234567890...` |
+| `{{commit_message}}` | Commit message that triggered the build | `--deploy Fix login bug` |
+| `{{branch}}` | Current branch name | `main` |
+| `{{repo_name}}` | Repository name | `my-project` |
+| `{{repo_path}}` | Full repository path | `/Users/dev/projects/my-project` |
+| `{{date}}` | Current date | `2024-01-15` |
+| `{{datetime}}` | Current date and time | `2024-01-15 14:30:00` |
+
+### Example Usage
+
+```bash
+# Flutter build with changelog
+flutter pub get && \
+cd ios && \
+fastlane build_and_upload changelog:"{{commits}}"
+
+# Deploy with commit info
+./deploy.sh --branch={{branch}} --version={{commit_hash}}
+```
+
+---
+
+## 🔔 Notification Settings
+
+### Notification Types
+
+Configure which notifications each messenger (Telegram/Teams) receives:
+
+| Notification | Description |
+|--------------|-------------|
+| 📥 **New Commit/Tag** | When a new commit or tag is detected |
+| 🚀 **Trigger Starting** | When a trigger command begins execution |
+| ✅ **Build Success** | When a build completes successfully |
+| ❌ **Build Failure** | When a build fails |
+| ⚠️ **Git Check Error** | When there's an error checking the repository |
+
+### Telegram Setup
+
+1. Create a bot with [@BotFather](https://t.me/botfather)
+2. Get your Chat ID from [@userinfobot](https://t.me/userinfobot)
+3. Add the token and chat ID to a Notification Group
+4. Use the **Test** button to verify the connection
+
+### Microsoft Teams / Power Automate
+
+1. Create a Power Automate workflow with HTTP trigger
+2. Copy the webhook URL
+3. Add the URL to a Notification Group
+4. Use the **Test** button to verify the connection
 
 ---
 
@@ -93,7 +157,7 @@ GitPilot/
 │   ├── CommandRunnerService.swift# Shell command execution
 │   ├── NotificationService.swift # Native macOS notifications
 │   ├── TelegramService.swift     # Telegram Bot API integration
-│   ├── TeamsService.swift        # MS Teams Adaptive Cards
+│   ├── TeamsService.swift        # MS Teams / Power Automate
 │   ├── ExportImportService.swift # JSON export/import
 │   └── LocalizationManager.swift # i18n management
 │
@@ -116,22 +180,6 @@ GitPilot/
 - **Combine** - Reactive programming for state management
 - **Foundation** - URLSession for network requests
 - **AppKit** - Menu bar integration, file dialogs
-
----
-
-## 🔔 Setting Up Notifications
-
-### Telegram
-
-1. Create a bot with [@BotFather](https://t.me/botfather)
-2. Get your Chat ID from [@userinfobot](https://t.me/userinfobot)
-3. Add the token and chat ID to a Notification Group
-
-### Microsoft Teams
-
-1. Create an Incoming Webhook in your channel (connectors)
-2. Copy the webhook URL
-3. Add the URL to a Notification Group
 
 ---
 

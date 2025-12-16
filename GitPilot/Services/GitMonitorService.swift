@@ -361,13 +361,22 @@ class GitMonitorService: ObservableObject {
         isBuilding = true
         repository.currentStatus = .building; AppState.shared.globalStatus = .building
         
+        // Process template variables in command
+        var processedCommand = trigger.command
+        processedCommand = await replaceTemplateVariables(
+            in: processedCommand,
+            repository: repository,
+            commitHash: commitHash,
+            commitMessage: commitMessage
+        )
+        
         let buildLog = BuildLog(
             repositoryId: repository.id,
             repositoryName: repository.name,
             triggerName: trigger.name,
             commitHash: commitHash,
             commitMessage: commitMessage,
-            command: trigger.command
+            command: processedCommand
         )
         context.insert(buildLog)
         
@@ -382,7 +391,7 @@ class GitMonitorService: ObservableObject {
         
         do {
             // Use streaming output callback
-            let result = try await commandRunner.run(command: trigger.command, at: workingDir) { [weak self] newOutput in
+            let result = try await commandRunner.run(command: processedCommand, at: workingDir) { [weak self] newOutput in
                 Task { @MainActor in
                     self?.liveOutput += newOutput
                     self?.currentBuildLog?.output = self?.liveOutput ?? ""
@@ -682,5 +691,67 @@ func forceBuild(for repository: WatchedRepository) async {
             chatId: chatId,
             repositoryName: repository.name
         )
+    }
+    
+    // MARK: - Template Variable Replacement
+    
+    /// Replace template variables in command string
+    /// Supported variables:
+    /// - {{commits}} - Recent commits (multi-line format)
+    /// - {{commits_oneline}} - Recent commits (single line, pipe-separated)
+    /// - {{commit_hash}} - Current commit hash (short)
+    /// - {{commit_hash_full}} - Current commit hash (full)
+    /// - {{commit_message}} - Current commit message  
+    /// - {{branch}} - Current branch name
+    /// - {{repo_name}} - Repository name
+    /// - {{repo_path}} - Repository path
+    /// - {{date}} - Current date (YYYY-MM-DD)
+    /// - {{datetime}} - Current date and time
+    private func replaceTemplateVariables(
+        in command: String,
+        repository: WatchedRepository,
+        commitHash: String,
+        commitMessage: String
+    ) async -> String {
+        var result = command
+        
+        // Quick check if there are any variables to replace
+        guard result.contains("{{") else { return result }
+        
+        // Get commits if needed
+        let needsCommits = result.contains("{{commits}}") || result.contains("{{commits_oneline}}")
+        var commitsMultiline = ""
+        var commitsOneline = ""
+        
+        if needsCommits {
+            do {
+                commitsMultiline = try await gitService.getRecentCommits(at: repository.localPath, count: 5)
+                commitsOneline = try await gitService.getRecentCommitsOneLine(at: repository.localPath, count: 5)
+            } catch {
+                print("⚠️ Failed to get commits for template: \(error)")
+            }
+        }
+        
+        // Date formatters
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateTimeFormatter = DateFormatter()
+        dateTimeFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        
+        // Perform replacements
+        let shortHash = String(commitHash.prefix(7))
+        
+        result = result.replacingOccurrences(of: "{{commits}}", with: commitsMultiline)
+        result = result.replacingOccurrences(of: "{{commits_oneline}}", with: commitsOneline)
+        result = result.replacingOccurrences(of: "{{commit_hash}}", with: shortHash)
+        result = result.replacingOccurrences(of: "{{commit_hash_full}}", with: commitHash)
+        result = result.replacingOccurrences(of: "{{commit_message}}", with: commitMessage)
+        result = result.replacingOccurrences(of: "{{branch}}", with: repository.branch)
+        result = result.replacingOccurrences(of: "{{repo_name}}", with: repository.name)
+        result = result.replacingOccurrences(of: "{{repo_path}}", with: repository.localPath)
+        result = result.replacingOccurrences(of: "{{date}}", with: dateFormatter.string(from: Date()))
+        result = result.replacingOccurrences(of: "{{datetime}}", with: dateTimeFormatter.string(from: Date()))
+        
+        return result
     }
 }

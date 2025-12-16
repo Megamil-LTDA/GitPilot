@@ -12,21 +12,7 @@ class TeamsService {
     /// Test connection with specific webhook URL
     func testConnection(webhookUrl: String) async -> Result<Void, Error> {
         let payload: [String: Any] = [
-            "type": "message",
-            "attachments": [[
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": [
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "type": "AdaptiveCard",
-                    "version": "1.4",
-                    "body": [[
-                        "type": "TextBlock",
-                        "text": "🔔 GitPilot - Teste de conexão realizado com sucesso!",
-                        "wrap": true,
-                        "weight": "bolder"
-                    ]]
-                ]
-            ]]
+            "message": "🔔 GitPilot - Teste de conexão realizado com sucesso!"
         ]
         return await sendPayload(webhookUrl: webhookUrl, payload: payload)
     }
@@ -40,43 +26,18 @@ class TeamsService {
         commitMessage: String,
         triggerName: String
     ) async {
-        let payload: [String: Any] = [
-            "type": "message",
-            "attachments": [[
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": [
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "type": "AdaptiveCard",
-                    "version": "1.4",
-                    "body": [
-                        [
-                            "type": "TextBlock",
-                            "text": "🚀 Trigger Iniciando",
-                            "wrap": true,
-                            "weight": "bolder",
-                            "size": "large",
-                            "color": "accent"
-                        ],
-                        [
-                            "type": "FactSet",
-                            "facts": [
-                                ["title": "📦 Repositório", "value": repositoryName],
-                                ["title": "🌿 Branch", "value": branch],
-                                ["title": "📝 Commit", "value": commitHash],
-                                ["title": "⚡️ Trigger", "value": triggerName]
-                            ]
-                        ],
-                        [
-                            "type": "TextBlock",
-                            "text": "💬 \(commitMessage)",
-                            "wrap": true,
-                            "isSubtle": true
-                        ]
-                    ]
-                ]
-            ]]
-        ]
+        let message = """
+        🚀 *Trigger Iniciando*
         
+        📦 Repositório: \(repositoryName)
+        🌿 Branch: \(branch)
+        📝 Commit: \(commitHash)
+        ⚡️ Trigger: \(triggerName)
+        
+        💬 \(commitMessage)
+        """
+        
+        let payload: [String: Any] = ["message": message]
         _ = await sendPayload(webhookUrl: webhookUrl, payload: payload)
     }
     
@@ -91,47 +52,21 @@ class TeamsService {
         duration: String,
         success: Bool
     ) async {
-        let color = success ? "good" : "attention"
         let status = success ? "✅ SUCESSO" : "❌ FALHA"
         
-        let payload: [String: Any] = [
-            "type": "message",
-            "attachments": [[
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": [
-                    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                    "type": "AdaptiveCard",
-                    "version": "1.4",
-                    "body": [
-                        [
-                            "type": "TextBlock",
-                            "text": "Build \(status)",
-                            "wrap": true,
-                            "weight": "bolder",
-                            "size": "large",
-                            "color": color
-                        ],
-                        [
-                            "type": "FactSet",
-                            "facts": [
-                                ["title": "📦 Repositório", "value": repositoryName],
-                                ["title": "🌿 Branch", "value": branch],
-                                ["title": "📝 Commit", "value": commitHash],
-                                ["title": "⚡️ Trigger", "value": triggerName],
-                                ["title": "⏱ Duração", "value": duration]
-                            ]
-                        ],
-                        [
-                            "type": "TextBlock",
-                            "text": "💬 \(commitMessage)",
-                            "wrap": true,
-                            "isSubtle": true
-                        ]
-                    ]
-                ]
-            ]]
-        ]
+        let message = """
+        Build \(status)
         
+        📦 Repositório: \(repositoryName)
+        🌿 Branch: \(branch)
+        📝 Commit: \(commitHash)
+        ⚡️ Trigger: \(triggerName)
+        ⏱ Duração: \(duration)
+        
+        💬 \(commitMessage)
+        """
+        
+        let payload: [String: Any] = ["message": message]
         _ = await sendPayload(webhookUrl: webhookUrl, payload: payload)
     }
     

@@ -40,15 +40,27 @@ actor CommandRunnerService {
         // Force common paths to be available even if shell init fails to set them
         var currentPath = environment["PATH"] ?? ""
         let requiredPaths = [
+            // Flutter / FVM
+            "\(homePath)/fvm/default/bin",
+            "\(homePath)/.pub-cache/bin",
+            "\(homePath)/flutter/bin",
+            "\(homePath)/development/flutter/bin",
+            "/opt/flutter/bin",
+            // Homebrew
             "/opt/homebrew/bin",
             "/opt/homebrew/sbin",
             "/usr/local/bin",
+            // System
             "/usr/bin",
-            "/bin",
+            "/bin",  
             "/usr/sbin",
             "/sbin",
+            // Other tools
             "\(homePath)/.bun/bin",
-            "\(homePath)/.cargo/bin"
+            "\(homePath)/.cargo/bin",
+            "\(homePath)/.rbenv/shims",
+            "\(homePath)/.gem/ruby/3.0.0/bin",
+            "/usr/local/opt/ruby/bin"
         ]
         
         for path in requiredPaths {

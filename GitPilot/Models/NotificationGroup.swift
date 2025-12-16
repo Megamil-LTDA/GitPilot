@@ -21,11 +21,25 @@ final class NotificationGroup {
     var telegramChatId: String?
     var telegramEnabled: Bool
     
+    // Telegram notification types
+    var telegramNotifyNewCommit: Bool = true
+    var telegramNotifyTriggerStart: Bool = true
+    var telegramNotifySuccess: Bool = true
+    var telegramNotifyFailure: Bool = true
+    var telegramNotifyError: Bool = true
+    
     // Teams/Power Automate configuration  
     var teamsWebhookUrl: String?
     var teamsEnabled: Bool
     
-    // Notification preferences
+    // Teams notification types
+    var teamsNotifyNewCommit: Bool = false
+    var teamsNotifyTriggerStart: Bool = true
+    var teamsNotifySuccess: Bool = true
+    var teamsNotifyFailure: Bool = true
+    var teamsNotifyError: Bool = true
+    
+    // Legacy - kept for backward compatibility
     var notifyOnSuccess: Bool
     var notifyOnFailure: Bool
     
