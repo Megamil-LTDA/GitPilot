@@ -412,12 +412,35 @@ class GitMonitorService: ObservableObject {
         
         let workingDir = trigger.effectiveWorkingDirectory ?? repository.localPath
         
+        // Throttle UI updates to avoid overwhelming the main thread
+        var lastUIUpdate = Date()
+        let minUpdateInterval: TimeInterval = 0.1 // 100ms between updates
+        var pendingOutput = ""
+        
         do {
-            // Use streaming output callback
+            // Use streaming output callback with throttling
             let result = try await commandRunner.run(command: processedCommand, at: workingDir) { [weak self] newOutput in
-                Task { @MainActor in
-                    self?.liveOutput += newOutput
-                    self?.currentBuildLog?.output = self?.liveOutput ?? ""
+                pendingOutput += newOutput
+                
+                // Throttle updates to main thread
+                let now = Date()
+                if now.timeIntervalSince(lastUIUpdate) >= minUpdateInterval {
+                    let outputToAdd = pendingOutput
+                    pendingOutput = ""
+                    lastUIUpdate = now
+                    
+                    Task { @MainActor in
+                        self?.liveOutput += outputToAdd
+                        // Don't update buildLog.output during streaming - it causes too much overhead
+                        // The final output will be set when build completes
+                    }
+                }
+            }
+            
+            // Flush any remaining pending output
+            if !pendingOutput.isEmpty {
+                await MainActor.run {
+                    self.liveOutput += pendingOutput
                 }
             }
             

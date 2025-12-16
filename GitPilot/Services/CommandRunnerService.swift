@@ -119,43 +119,46 @@ actor CommandRunnerService {
             }
             
             process.terminationHandler = { [weak self] _ in
-                // Read any remaining data - MUST be done before closing pipes or removing handlers?
-                // readabilityHandler should be set to nil to stop it
+                // Stop handlers first
                 outputPipe.fileHandleForReading.readabilityHandler = nil
                 errorPipe.fileHandleForReading.readabilityHandler = nil
                 
-                // Read the rest synchronously from the pipe buffer
-                let remainingOutput = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                let remainingError = errorPipe.fileHandleForReading.readDataToEndOfFile()
-                
-                dataQueue.async {
-                    outputData.append(remainingOutput)
-                    errorData.append(remainingError)
+                // Read remaining data in background to avoid blocking
+                DispatchQueue.global(qos: .userInitiated).async {
+                    // Small delay to let handlers finish processing
+                    Thread.sleep(forTimeInterval: 0.1)
                     
-                    // Stream remaining output
-                    if let callback = onOutput {
-                        if let text = String(data: remainingOutput, encoding: .utf8), !text.isEmpty {
-                            DispatchQueue.main.async { callback(text) }
+                    let remainingOutput = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                    let remainingError = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                    
+                    dataQueue.async {
+                        outputData.append(remainingOutput)
+                        errorData.append(remainingError)
+                        
+                        // Stream remaining output (but don't overwhelm main thread)
+                        if let callback = onOutput {
+                            if let text = String(data: remainingOutput, encoding: .utf8), !text.isEmpty {
+                                DispatchQueue.main.async { callback(text) }
+                            }
+                            if let text = String(data: remainingError, encoding: .utf8), !text.isEmpty {
+                                DispatchQueue.main.async { callback(text) }
+                            }
                         }
-                        if let text = String(data: remainingError, encoding: .utf8), !text.isEmpty {
-                            DispatchQueue.main.async { callback(text) }
-                        }
+                        
+                        let output = String(data: outputData, encoding: .utf8) ?? ""
+                        let error = String(data: errorData, encoding: .utf8) ?? ""
+                        
+                        let fullOutput = (output + (error.isEmpty ? "" : "\nError Output:\n" + error)).trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        let finalOutput = fullOutput.isEmpty ? "[No output captured]" : fullOutput
+                        
+                        let result = CommandResult(
+                            output: finalOutput,
+                            exitCode: Int(process.terminationStatus)
+                        )
+                        
+                        continuation.resume(returning: result)
                     }
-                    
-                    let output = String(data: outputData, encoding: .utf8) ?? ""
-                    let error = String(data: errorData, encoding: .utf8) ?? ""
-                    
-                    let fullOutput = (output + (error.isEmpty ? "" : "\nError Output:\n" + error)).trimmingCharacters(in: .whitespacesAndNewlines)
-                    
-                    // Fallback: If absolutely no output, maybe provide a hint?
-                    let finalOutput = fullOutput.isEmpty ? "[No output captured]" : fullOutput
-                    
-                    let result = CommandResult(
-                        output: finalOutput,
-                        exitCode: Int(process.terminationStatus)
-                    )
-                    
-                    continuation.resume(returning: result)
                 }
             }
             

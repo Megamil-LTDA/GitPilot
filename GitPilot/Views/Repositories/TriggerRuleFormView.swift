@@ -54,6 +54,8 @@ struct TriggerRuleFormView: View {
                                     .font(.system(.body, design: .monospaced))
                                     .frame(minHeight: 100, maxHeight: 200)
                                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.3), lineWidth: 1))
+                                    .disableAutocorrection(true)
+                                    .textContentType(.none)
                                 Text("💡 Use \\n para múltiplos comandos ou scripts complexos")
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
@@ -124,7 +126,12 @@ struct TriggerRuleFormView: View {
         let t = trigger ?? TriggerRule(name: "", command: "")
         t.name = name
         t.commitFlag = commitFlag.isEmpty ? nil : commitFlag
+        // Sanitize curly quotes to straight quotes to avoid shell errors
         t.command = command
+            .replacingOccurrences(of: "\u{201C}", with: "\"")  // Left double curly quote
+            .replacingOccurrences(of: "\u{201D}", with: "\"")  // Right double curly quote
+            .replacingOccurrences(of: "\u{2018}", with: "'")   // Left single curly quote
+            .replacingOccurrences(of: "\u{2019}", with: "'")   // Right single curly quote
         t.workingDirectory = workingDirectory.isEmpty ? nil : workingDirectory
         t.priority = priority
         t.isEnabled = isEnabled

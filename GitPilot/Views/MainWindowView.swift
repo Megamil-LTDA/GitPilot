@@ -621,6 +621,7 @@ struct GroupCard: View {
 struct RepositoryCard: View {
     @Bindable var repository: WatchedRepository
     @EnvironmentObject var gitMonitor: GitMonitorService
+    @Environment(\.modelContext) private var modelContext
     @ObservedObject var loc = LocalizationManager.shared
     
     var body: some View {
@@ -647,6 +648,18 @@ struct RepositoryCard: View {
             Spacer()
             
             HStack(spacing: 8) {
+                Button {
+                    duplicateRepository()
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 14, height: 14)
+                }
+                .frame(width: 32, height: 32)
+                .buttonStyle(.bordered)
+                .help("Duplicar repositório")
+                
                 Button {
                     Task { await gitMonitor.forceBuild(for: repository) }
                 } label: {
@@ -694,6 +707,39 @@ struct RepositoryCard: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+    }
+    
+    private func duplicateRepository() {
+        // Create a new repository with copied values
+        let newRepo = WatchedRepository(
+            name: "\(repository.name) COPIA",
+            localPath: repository.localPath,
+            remoteName: repository.remoteName,
+            branch: repository.branch,
+            checkIntervalSeconds: repository.checkIntervalSeconds
+        )
+        newRepo.isEnabled = false // Start disabled to allow editing
+        newRepo.watchTags = repository.watchTags
+        newRepo.lastKnownTag = repository.lastKnownTag
+        newRepo.notificationGroup = repository.notificationGroup
+        
+        // Duplicate triggers
+        for trigger in repository.triggers {
+            let newTrigger = TriggerRule(
+                name: trigger.name,
+                command: trigger.command,
+                commitFlag: trigger.commitFlag
+            )
+            newTrigger.workingDirectory = trigger.workingDirectory
+            newTrigger.isEnabled = trigger.isEnabled
+            newTrigger.priority = trigger.priority
+            newRepo.triggers.append(newTrigger)
+        }
+        
+        modelContext.insert(newRepo)
+        try? modelContext.save()
+        
+        print("✅ Repositório duplicado: \(newRepo.name)")
     }
     
     private var statusColor: Color { guard repository.isEnabled else { return .gray }; switch repository.currentStatus { case .idle: return .green; case .checking: return .yellow; case .building: return .blue; case .success: return .green; case .failed, .error: return .red } }
