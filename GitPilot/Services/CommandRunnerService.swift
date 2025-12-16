@@ -171,6 +171,14 @@ actor CommandRunnerService {
     func cancel(processId: UUID) {
         runningProcesses[processId]?.terminate()
     }
+    
+    /// Cancel all running processes
+    func cancelAll() {
+        for (_, process) in runningProcesses {
+            process.terminate()
+        }
+        runningProcesses.removeAll()
+    }
 }
 
 /// Result of a command execution

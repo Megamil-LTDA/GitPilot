@@ -31,7 +31,8 @@ struct BuildLogDetailView: View {
     }
     
     var isTruncated: Bool {
-        displayOutput.count > 10000
+        // Don't truncate live output - only truncate when viewing completed builds
+        !isLiveBuild && displayOutput.count > 10000
     }
     
     var truncatedOutput: String {
@@ -56,6 +57,15 @@ struct BuildLogDetailView: View {
                     ProgressView()
                         .scaleEffect(0.7)
                         .padding(.leading, 8)
+                    
+                    Button {
+                        gitMonitor.cancelCurrentBuild()
+                        dismiss()
+                    } label: {
+                        Label("Abortar", systemImage: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
                 }
                 
                 Spacer()

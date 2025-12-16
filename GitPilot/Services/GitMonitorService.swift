@@ -75,6 +75,29 @@ class GitMonitorService: ObservableObject {
         activeTimers.removeValue(forKey: repository.id)
     }
     
+    /// Cancel the current running build
+    func cancelCurrentBuild() {
+        guard isBuilding else { return }
+        
+        print("🛑 Cancelling current build...")
+        
+        Task {
+            await commandRunner.cancelAll()
+        }
+        
+        // Mark build as cancelled
+        if let buildLog = currentBuildLog {
+            buildLog.complete(exitCode: -999, output: (buildLog.output ?? "") + "\n\n🛑 Build cancelado pelo usuário")
+        }
+        
+        isBuilding = false
+        currentBuildLog = nil
+        liveOutput = ""
+        AppState.shared.globalStatus = .idle
+        
+        print("✅ Build cancelled")
+    }
+    
     func checkRepository(_ repository: WatchedRepository) async {
         guard repository.isEnabled else { print("⚠️ \(repository.name) disabled"); return }
         guard let context = modelContext else { print("❌ No context"); return }
