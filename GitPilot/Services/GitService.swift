@@ -174,13 +174,13 @@ actor GitService {
     }
     
     /// Get recent commits formatted for changelog
-    /// Returns commits in format: "- <hash_short> <message> (<author>)" separated by newlines
+    /// Returns commits in format: "• <hash> - <author> (<relative_time>): <message>" separated by newlines
     func getRecentCommits(at path: String, count: Int = 10, since hash: String? = nil) async throws -> String {
-        var command = "git log -\(count) --pretty=format:'- %h %s (%an)'"
+        var command = "git log -\(count) --pretty=format:'• %h - %an (%ar): %s'"
         
         // If we have a previous hash, get commits since then
         if let previousHash = hash {
-            command = "git log \(previousHash)..HEAD --pretty=format:'- %h %s (%an)'"
+            command = "git log \(previousHash)..HEAD --pretty=format:'• %h - %an (%ar): %s'"
         }
         
         let result = try await Shell.run(command, at: path)
@@ -193,10 +193,10 @@ actor GitService {
     
     /// Get recent commits as a single line (for changelog parameters)
     func getRecentCommitsOneLine(at path: String, count: Int = 5, since hash: String? = nil) async throws -> String {
-        var command = "git log -\(count) --pretty=format:'%h: %s (%an)'"
+        var command = "git log -\(count) --pretty=format:'%h - %an (%ar): %s'"
         
         if let previousHash = hash {
-            command = "git log \(previousHash)..HEAD --pretty=format:'%h: %s (%an)'"
+            command = "git log \(previousHash)..HEAD --pretty=format:'%h - %an (%ar): %s'"
         }
         
         let result = try await Shell.run(command, at: path)
