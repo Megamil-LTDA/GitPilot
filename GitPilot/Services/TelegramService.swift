@@ -47,10 +47,12 @@ class TelegramService {
         branch: String,
         commitHash: String,
         commitMessage: String,
+        commitAuthor: String,
+        commitDate: String,
         triggerName: String
     ) async {
         let message = """
-        🚀 *Trigger Iniciando*
+        🚀 *Solicitação de deploy enviada por* \(commitAuthor) *às* \(commitDate)
         
         📦 *Repositório:* \(repositoryName)
         🌿 *Branch:* \(branch)

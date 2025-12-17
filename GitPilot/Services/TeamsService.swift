@@ -24,16 +24,19 @@ class TeamsService {
         branch: String,
         commitHash: String,
         commitMessage: String,
+        commitAuthor: String,
+        commitDate: String,
         triggerName: String
     ) async {
+        // Using <br> for line breaks in Teams/Power Automate
         let message = """
-        🚀 *Trigger Iniciando*
-        
-        📦 Repositório: \(repositoryName)
-        🌿 Branch: \(branch)
-        📝 Commit: \(commitHash)
-        ⚡️ Trigger: \(triggerName)
-        
+        🚀 Solicitação de deploy enviada por \(commitAuthor) às \(commitDate)<br>
+        <br>
+        📦 Repositório: \(repositoryName)<br>
+        🌿 Branch: \(branch)<br>
+        📝 Commit: \(commitHash)<br>
+        ⚡️ Trigger: \(triggerName)<br>
+        <br>
         💬 \(commitMessage)
         """
         

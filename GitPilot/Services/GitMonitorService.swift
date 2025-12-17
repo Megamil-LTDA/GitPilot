@@ -673,6 +673,16 @@ func forceBuild(for repository: WatchedRepository) async {
             return
         }
         
+        // Fetch commit author and date
+        var commitAuthor = "Desconhecido"
+        var commitDate = ""
+        do {
+            commitAuthor = try await GitService.shared.getCommitAuthor(at: repository.localPath, hash: commitHash)
+            commitDate = try await GitService.shared.getCommitDate(at: repository.localPath, hash: commitHash)
+        } catch {
+            print("⚠️ Could not fetch commit author/date: \(error)")
+        }
+        
         // Telegram notification
         if group.telegramEnabled && group.telegramConfigured,
            let token = group.telegramBotToken,
@@ -684,6 +694,8 @@ func forceBuild(for repository: WatchedRepository) async {
                 branch: repository.branch,
                 commitHash: String(commitHash.prefix(7)),
                 commitMessage: commitMessage,
+                commitAuthor: commitAuthor,
+                commitDate: commitDate,
                 triggerName: triggerName
             )
         }
@@ -697,6 +709,8 @@ func forceBuild(for repository: WatchedRepository) async {
                 branch: repository.branch,
                 commitHash: String(commitHash.prefix(7)),
                 commitMessage: commitMessage,
+                commitAuthor: commitAuthor,
+                commitDate: commitDate,
                 triggerName: triggerName
             )
         }

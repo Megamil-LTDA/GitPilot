@@ -69,6 +69,28 @@ actor GitService {
         return result.output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    /// Get commit date for a specific hash (formatted as dd/MM/yyyy HH:mm)
+    func getCommitDate(at path: String, hash: String) async throws -> String {
+        let result = try await Shell.run("git log -1 --format=%ci \(hash)", at: path)
+        guard result.exitCode == 0 else {
+            throw GitError.invalidCommit(hash)
+        }
+        let gitDate = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Parse git date format (2024-12-16 22:30:00 -0300) and format to dd/MM/yyyy HH:mm
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        
+        let outputFormatter = DateFormatter()
+        outputFormatter.dateFormat = "dd/MM/yyyy HH:mm"
+        outputFormatter.locale = Locale(identifier: "pt_BR")
+        
+        if let date = inputFormatter.date(from: gitDate) {
+            return outputFormatter.string(from: date)
+        }
+        return gitDate // fallback to original format
+    }
+    
     /// Check if repository path is valid
     func isValidRepository(at path: String) async -> Bool {
         do {
