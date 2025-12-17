@@ -39,3 +39,4 @@ Package.resolved
 *.env
 .env.*
 secrets.json
+gitpilot_config.json
