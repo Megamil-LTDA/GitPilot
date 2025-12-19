@@ -58,14 +58,14 @@ class TeamsService {
         let status = success ? "✅ SUCESSO" : "❌ FALHA"
         
         let message = """
-        Build \(status)
-        
-        📦 Repositório: \(repositoryName)
-        🌿 Branch: \(branch)
-        📝 Commit: \(commitHash)
-        ⚡️ Trigger: \(triggerName)
-        ⏱ Duração: \(duration)
-        
+        Build \(status)<br>
+        <br>
+        📦 Repositório: \(repositoryName)<br>
+        🌿 Branch: \(branch)<br>
+        📝 Commit: \(commitHash)<br>
+        ⚡️ Trigger: \(triggerName)<br>
+        ⏱ Duração: \(duration)<br>
+        <br>
         💬 \(commitMessage)
         """
         
