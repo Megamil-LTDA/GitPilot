@@ -13,10 +13,11 @@ import SwiftData
 
 @main
 struct GitPilotApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState.shared
     @StateObject private var gitMonitor = GitMonitorService.shared
     
-    let sharedModelContainer: ModelContainer = {
+    static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             WatchedRepository.self,
             TriggerRule.self,
@@ -38,7 +39,7 @@ struct GitPilotApp: App {
             MenuBarMenu()
                 .environmentObject(appState)
                 .environmentObject(gitMonitor)
-                .modelContainer(sharedModelContainer)
+                .modelContainer(Self.sharedModelContainer)
         } label: {
             StatusItemView(status: appState.globalStatus)
         }
@@ -47,7 +48,7 @@ struct GitPilotApp: App {
             MainWindowView()
                 .environmentObject(appState)
                 .environmentObject(gitMonitor)
-                .modelContainer(sharedModelContainer)
+                .modelContainer(Self.sharedModelContainer)
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
@@ -57,10 +58,41 @@ struct GitPilotApp: App {
             SettingsView()
                 .frame(width: 500, height: 450)
                 .environmentObject(appState)
-                .modelContainer(sharedModelContainer)
+                .modelContainer(Self.sharedModelContainer)
                 .onAppear {
                     NSApp.activate(ignoringOtherApps: true)
                 }
+        }
+    }
+}
+
+// MARK: - App Delegate for Background Startup
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Auto-start monitoring after app is fully initialized
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.autoStartMonitoring()
+        }
+    }
+    
+    private func autoStartMonitoring() {
+        Task { @MainActor in
+            do {
+                let context = ModelContext(GitPilotApp.sharedModelContainer)
+                GitMonitorService.shared.setModelContext(context)
+                
+                let repos = try context.fetch(FetchDescriptor<WatchedRepository>())
+                if !repos.isEmpty && !AppState.shared.isPaused {
+                    print("🚀 Auto-starting monitoring for \(repos.count) repositories")
+                    GitMonitorService.shared.startMonitoring(repositories: repos)
+                } else if repos.isEmpty {
+                    print("ℹ️ No repositories to monitor")
+                } else {
+                    print("⏸️ Monitoring is paused")
+                }
+            } catch {
+                print("❌ Failed to auto-start monitoring: \(error)")
+            }
         }
     }
 }
@@ -93,7 +125,15 @@ struct MenuBarMenu: View {
         
         Divider()
         
-        SettingsLink { Text(loc.string("app.settings") + "...") }.keyboardShortcut(",")
+        SettingsLink {
+            Text(loc.string("app.settings") + "...")
+        }
+        .keyboardShortcut(",")
+        .simultaneousGesture(TapGesture().onEnded {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        })
         
         Divider()
         

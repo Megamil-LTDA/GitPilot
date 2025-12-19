@@ -12,7 +12,7 @@ import Foundation
 enum Shell {
     
     /// Run a shell command and return the result
-    static func run(_ command: String, at path: String? = nil) async throws -> ShellResult {
+    static func run(_ command: String, at path: String? = nil, timeout: TimeInterval = 30) async throws -> ShellResult {
         let process = Process()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
@@ -43,26 +43,84 @@ enum Shell {
         process.environment = environment
         
         return try await withCheckedThrowingContinuation { continuation in
+            var outputData = Data()
+            var errorData = Data()
+            var hasResumed = false
+            let lock = NSLock()
+            
+            // Use non-blocking reading to avoid hangs
+            let dataQueue = DispatchQueue(label: "com.megamil.gitpilot.shell.data", qos: .userInitiated)
+            
+            outputPipe.fileHandleForReading.readabilityHandler = { handle in
+                let data = handle.availableData
+                if !data.isEmpty {
+                    dataQueue.sync { outputData.append(data) }
+                }
+            }
+            
+            errorPipe.fileHandleForReading.readabilityHandler = { handle in
+                let data = handle.availableData
+                if !data.isEmpty {
+                    dataQueue.sync { errorData.append(data) }
+                }
+            }
+            
             process.terminationHandler = { _ in
-                let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                // Stop reading handlers
+                outputPipe.fileHandleForReading.readabilityHandler = nil
+                errorPipe.fileHandleForReading.readabilityHandler = nil
                 
-                let output = String(data: outputData, encoding: .utf8) ?? ""
-                let error = String(data: errorData, encoding: .utf8) ?? ""
-                
-                let result = ShellResult(
-                    output: output,
-                    error: error,
-                    exitCode: Int(process.terminationStatus)
-                )
-                
-                continuation.resume(returning: result)
+                // Small delay then read remaining data
+                dataQueue.asyncAfter(deadline: .now() + 0.05) {
+                    // Safely read remaining - with very short timeout approach
+                    if let remainingOutput = try? outputPipe.fileHandleForReading.availableData, !remainingOutput.isEmpty {
+                        outputData.append(remainingOutput)
+                    }
+                    if let remainingError = try? errorPipe.fileHandleForReading.availableData, !remainingError.isEmpty {
+                        errorData.append(remainingError)
+                    }
+                    
+                    let result = ShellResult(
+                        output: String(data: outputData, encoding: .utf8) ?? "",
+                        error: String(data: errorData, encoding: .utf8) ?? "",
+                        exitCode: Int(process.terminationStatus)
+                    )
+                    
+                    lock.lock()
+                    if !hasResumed {
+                        hasResumed = true
+                        lock.unlock()
+                        continuation.resume(returning: result)
+                    } else {
+                        lock.unlock()
+                    }
+                }
+            }
+            
+            // Timeout to prevent infinite hangs
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                lock.lock()
+                if !hasResumed && process.isRunning {
+                    hasResumed = true
+                    lock.unlock()
+                    process.terminate()
+                    continuation.resume(throwing: ShellError.timeout)
+                } else {
+                    lock.unlock()
+                }
             }
             
             do {
                 try process.run()
             } catch {
-                continuation.resume(throwing: ShellError.launchFailed(error.localizedDescription))
+                lock.lock()
+                if !hasResumed {
+                    hasResumed = true
+                    lock.unlock()
+                    continuation.resume(throwing: ShellError.launchFailed(error.localizedDescription))
+                } else {
+                    lock.unlock()
+                }
             }
         }
     }
@@ -129,11 +187,14 @@ struct ShellResult {
 /// Shell execution errors
 enum ShellError: LocalizedError {
     case launchFailed(String)
+    case timeout
     
     var errorDescription: String? {
         switch self {
         case .launchFailed(let reason):
             return "Failed to launch shell: \(reason)"
+        case .timeout:
+            return "Command timed out"
         }
     }
 }

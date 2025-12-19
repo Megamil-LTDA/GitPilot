@@ -83,6 +83,11 @@ struct Strings {
         "settings.nativeNotifications": "Notificações nativas",
         "settings.notifySuccess": "Notificar sucesso",
         "settings.notifyFailure": "Notificar falha",
+        "settings.appBehavior": "Comportamento do App",
+        "settings.showInDockHelp": "Mostrar no Dock permite ver o app no Dock e no Command-Tab",
+        "settings.permissionRequired": "Permissão de notificação necessária",
+        "settings.requestPermission": "Solicitar Permissão",
+        "settings.checkUpdates": "Verificar atualizações",
         
         // Status
         "status.idle": "Aguardando",
@@ -110,6 +115,7 @@ struct Strings {
         "action.import": "Importar",
         "action.test": "Testar Conexão",
         "action.close": "Fechar",
+        "action.forceBuild": "Forçar Build",
         
         // Sidebar
         "sidebar.repositories": "Repositórios",
@@ -210,6 +216,12 @@ struct Strings {
         "data.exportDescription": "Exporta grupos, repositórios e triggers para JSON.",
         "data.importDescription": "Importa configurações de um arquivo JSON.",
         "data.dataCount": "Dados",
+        "data.resetSystem": "Resetar Sistema",
+        "data.resetDescription": "Esta ação irá remover TODOS os dados do GitPilot. Grupos, Repositórios, Logs e Histórico serão apagados permanentemente.",
+        "data.clearAll": "Limpar Tudo",
+        "data.resetAll": "Resetar Tudo",
+        "data.resetConfirmation": "Tem certeza absoluta? Todos os dados serão perdidos permanentemente.",
+        "data.resetSuccess": "Sistema resetado com sucesso.",
         
         // Telegram/Teams
         "telegram.info": "O Telegram agora é configurado por grupo de notificação.",
@@ -274,6 +286,7 @@ struct Strings {
         "action.import": "Import",
         "action.test": "Test Connection",
         "action.close": "Close",
+        "action.forceBuild": "Force Build",
         
         // Sidebar
         "sidebar.repositories": "Repositories",
@@ -378,6 +391,11 @@ struct Strings {
         "settings.nativeNotifications": "Native notifications",
         "settings.notifySuccess": "Notify on success",
         "settings.notifyFailure": "Notify on failure",
+        "settings.appBehavior": "App Behavior",
+        "settings.showInDockHelp": "Showing in Dock allows you to see the app in Dock and Command-Tab",
+        "settings.permissionRequired": "Notification permission required",
+        "settings.requestPermission": "Request Permission",
+        "settings.checkUpdates": "Check for updates",
         
         // Data
         "data.export": "Export Settings",
@@ -387,6 +405,12 @@ struct Strings {
         "data.exportDescription": "Exports groups, repositories and triggers to JSON.",
         "data.importDescription": "Imports settings from a JSON file.",
         "data.dataCount": "Data",
+        "data.resetSystem": "Reset System",
+        "data.resetDescription": "This action will remove ALL data from GitPilot. Groups, Repositories, Logs and History will be permanently deleted.",
+        "data.clearAll": "Clear All",
+        "data.resetAll": "Reset All",
+        "data.resetConfirmation": "Are you absolutely sure? All data will be permanently lost.",
+        "data.resetSuccess": "System reset successfully.",
         
         // Telegram/Teams
         "telegram.info": "Telegram is now configured per notification group.",
@@ -451,6 +475,7 @@ struct Strings {
         "action.import": "Importar",
         "action.test": "Probar Conexión",
         "action.close": "Cerrar",
+        "action.forceBuild": "Forzar Build",
         
         // Sidebar
         "sidebar.repositories": "Repositorios",
@@ -555,6 +580,11 @@ struct Strings {
         "settings.nativeNotifications": "Notificaciones nativas",
         "settings.notifySuccess": "Notificar éxito",
         "settings.notifyFailure": "Notificar fallo",
+        "settings.appBehavior": "Comportamiento de la App",
+        "settings.showInDockHelp": "Mostrar en el Dock permite ver la app en el Dock y en Command-Tab",
+        "settings.permissionRequired": "Permiso de notificación requerido",
+        "settings.requestPermission": "Solicitar Permiso",
+        "settings.checkUpdates": "Buscar actualizaciones",
         
         // Data
         "data.export": "Exportar Configuración",
@@ -564,6 +594,12 @@ struct Strings {
         "data.exportDescription": "Exporta grupos, repositorios y triggers a JSON.",
         "data.importDescription": "Importa configuración desde un archivo JSON.",
         "data.dataCount": "Datos",
+        "data.resetSystem": "Restablecer Sistema",
+        "data.resetDescription": "Esta acción eliminará TODOS los datos de GitPilot. Grupos, Repositorios, Logs e Historial serán borrados permanentemente.",
+        "data.clearAll": "Limpiar Todo",
+        "data.resetAll": "Restablecer Todo",
+        "data.resetConfirmation": "¿Estás absolutamente seguro? Todos los datos se perderán permanentemente.",
+        "data.resetSuccess": "Sistema restablecido con éxito.",
         
         // Telegram/Teams
         "telegram.info": "Telegram ahora se configura por grupo de notificación.",

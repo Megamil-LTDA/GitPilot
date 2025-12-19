@@ -7,17 +7,18 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
+    @ObservedObject var loc = LocalizationManager.shared
     
     var body: some View {
         TabView {
             GeneralSettingsView()
                 .tabItem {
-                    Label("Geral", systemImage: "gear")
+                    Label(loc.string("settings.general"), systemImage: "gear")
                 }
             
             DataSettingsView()
                 .tabItem {
-                    Label("Dados", systemImage: "square.and.arrow.up.on.square")
+                    Label(loc.string("settings.data"), systemImage: "square.and.arrow.up.on.square")
                 }
         }
         .padding()

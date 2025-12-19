@@ -58,6 +58,10 @@ struct RepositoryExport: Codable {
     let watchTags: Bool?
     let notificationGroupId: String?
     let triggers: [TriggerExport]
+    // State fields to preserve last analyzed commit
+    let lastCommitHash: String?
+    let lastCommitMessage: String?
+    let lastKnownTag: String?
     
     init(from repo: WatchedRepository) {
         self.name = repo.name
@@ -69,6 +73,10 @@ struct RepositoryExport: Codable {
         self.watchTags = repo.watchTags
         self.notificationGroupId = repo.notificationGroup?.id.uuidString
         self.triggers = repo.triggers.map { TriggerExport(from: $0) }
+        // Save state
+        self.lastCommitHash = repo.lastCommitHash
+        self.lastCommitMessage = repo.lastCommitMessage
+        self.lastKnownTag = repo.lastKnownTag
     }
 }
 
@@ -148,6 +156,11 @@ class ExportImportService {
                     notificationGroup: group,
                     watchTags: re.watchTags ?? false
                 )
+                
+                // Restore state from export
+                repo.lastCommitHash = re.lastCommitHash
+                repo.lastCommitMessage = re.lastCommitMessage
+                repo.lastKnownTag = re.lastKnownTag
                 
                 for te in re.triggers {
                     let trigger = TriggerRule(

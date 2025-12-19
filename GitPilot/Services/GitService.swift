@@ -232,6 +232,28 @@ actor GitService {
             .components(separatedBy: "\n")
             .joined(separator: " | ")
     }
+    
+    /// Get recent commits formatted for Teams (using HTML line breaks)
+    /// Returns commits in format: "• <hash> - <author> (<relative_time>): <message>" separated by <br>
+    func getRecentCommitsTeams(at path: String, count: Int = 10, since hash: String? = nil) async throws -> String {
+        var command = "git log -\(count) --pretty=format:'• %h - %an (%ar): %s'"
+        
+        // If we have a previous hash, get commits since then
+        if let previousHash = hash {
+            command = "git log \(previousHash)..HEAD --pretty=format:'• %h - %an (%ar): %s'"
+        }
+        
+        let result = try await Shell.run(command, at: path)
+        guard result.exitCode == 0 else {
+            return ""
+        }
+        
+        // Join with HTML br tags for Teams
+        return result.output
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: "\n")
+            .joined(separator: "<br>")
+    }
 }
 
 // MARK: - Errors

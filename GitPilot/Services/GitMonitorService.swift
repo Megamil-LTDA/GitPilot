@@ -759,6 +759,7 @@ func forceBuild(for repository: WatchedRepository) async {
     /// Supported variables:
     /// - {{commits}} - Recent commits (multi-line format)
     /// - {{commits_oneline}} - Recent commits (single line, pipe-separated)
+    /// - {{commits_teams}} - Recent commits with HTML br line breaks for Teams
     /// - {{commit_hash}} - Current commit hash (short)
     /// - {{commit_hash_full}} - Current commit hash (full)
     /// - {{commit_message}} - Current commit message  
@@ -779,14 +780,16 @@ func forceBuild(for repository: WatchedRepository) async {
         guard result.contains("{{") else { return result }
         
         // Get commits if needed
-        let needsCommits = result.contains("{{commits}}") || result.contains("{{commits_oneline}}")
+        let needsCommits = result.contains("{{commits}}") || result.contains("{{commits_oneline}}") || result.contains("{{commits_teams}}")
         var commitsMultiline = ""
         var commitsOneline = ""
+        var commitsTeams = ""
         
         if needsCommits {
             do {
                 commitsMultiline = try await gitService.getRecentCommits(at: repository.localPath, count: 5)
                 commitsOneline = try await gitService.getRecentCommitsOneLine(at: repository.localPath, count: 5)
+                commitsTeams = try await gitService.getRecentCommitsTeams(at: repository.localPath, count: 5)
             } catch {
                 print("⚠️ Failed to get commits for template: \(error)")
             }
@@ -803,6 +806,7 @@ func forceBuild(for repository: WatchedRepository) async {
         
         result = result.replacingOccurrences(of: "{{commits}}", with: commitsMultiline)
         result = result.replacingOccurrences(of: "{{commits_oneline}}", with: commitsOneline)
+        result = result.replacingOccurrences(of: "{{commits_teams}}", with: commitsTeams)
         result = result.replacingOccurrences(of: "{{commit_hash}}", with: shortHash)
         result = result.replacingOccurrences(of: "{{commit_hash_full}}", with: commitHash)
         result = result.replacingOccurrences(of: "{{commit_message}}", with: commitMessage)

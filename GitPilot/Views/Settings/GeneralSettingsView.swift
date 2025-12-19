@@ -12,29 +12,30 @@ import ServiceManagement
 /// General settings tab
 struct GeneralSettingsView: View {
     @ObservedObject private var settingsManager = SettingsManager.shared
+    @ObservedObject var loc = LocalizationManager.shared
     
     @State private var notificationsPermissionGranted = false
     
     var body: some View {
         Form {
-            Section("Notifications") {
-                Toggle("Enable native notifications", isOn: $settingsManager.settings.nativeNotificationsEnabled)
+            Section(loc.string("settings.notifications")) {
+                Toggle(loc.string("settings.nativeNotifications"), isOn: $settingsManager.settings.nativeNotificationsEnabled)
                 
                 if settingsManager.settings.nativeNotificationsEnabled {
-                    Toggle("Notify on success", isOn: $settingsManager.settings.notifyOnSuccess)
-                    Toggle("Notify on failure", isOn: $settingsManager.settings.notifyOnFailure)
+                    Toggle(loc.string("settings.notifySuccess"), isOn: $settingsManager.settings.notifyOnSuccess)
+                    Toggle(loc.string("settings.notifyFailure"), isOn: $settingsManager.settings.notifyOnFailure)
                     
                     if !notificationsPermissionGranted {
                         HStack {
                             Image(systemName: "exclamationmark.triangle")
                                 .foregroundStyle(.orange)
                             
-                            Text("Notification permission required")
+                            Text(loc.string("settings.permissionRequired"))
                                 .font(.caption)
                             
                             Spacer()
                             
-                            Button("Request Permission") {
+                            Button(loc.string("settings.requestPermission")) {
                                 requestNotificationPermission()
                             }
                             .buttonStyle(.bordered)
@@ -44,24 +45,24 @@ struct GeneralSettingsView: View {
                 }
             }
             
-            Section("App Behavior") {
-                Toggle("Launch at login", isOn: $settingsManager.settings.launchAtLogin)
+            Section(loc.string("settings.appBehavior")) {
+                Toggle(loc.string("settings.launchAtLogin"), isOn: $settingsManager.settings.launchAtLogin)
                     .onChange(of: settingsManager.settings.launchAtLogin) { _, newValue in
                         updateLaunchAtLogin(newValue)
                     }
                 
-                Toggle("Show in Dock", isOn: $settingsManager.settings.showInDock)
+                Toggle(loc.string("settings.showInDock"), isOn: $settingsManager.settings.showInDock)
                     .onChange(of: settingsManager.settings.showInDock) { _, newValue in
                         updateDockVisibility(newValue)
                     }
-                    .help("Showing in Dock allows you to see the app in the Dock and Command-Tab switcher")
+                    .help(loc.string("settings.showInDockHelp"))
             }
             
             Section {
                 HStack {
-                    Text("Check for updates")
+                    Text(loc.string("settings.checkUpdates"))
                     Spacer()
-                    Button("Check Now") {
+                    Button(loc.string("action.checkNow")) {
                         // TODO: Implement update checking
                     }
                     .disabled(true)

@@ -628,7 +628,15 @@ struct RepositoryCard: View {
         HStack(spacing: 16) {
             ZStack {
                 Circle().fill(statusColor.opacity(0.2)).frame(width: 44, height: 44)
-                if repository.isChecking { ProgressView().scaleEffect(0.7) } else { Image(systemName: statusIcon).foregroundStyle(statusColor) }
+                if repository.isChecking {
+                    // Use SF Symbol with rotation animation instead of ProgressView to avoid layout crashes
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundStyle(statusColor)
+                        .rotationEffect(.degrees(repository.isChecking ? 360 : 0))
+                        .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: repository.isChecking)
+                } else {
+                    Image(systemName: statusIcon).foregroundStyle(statusColor)
+                }
             }
             VStack(alignment: .leading, spacing: 4) {
                 HStack {

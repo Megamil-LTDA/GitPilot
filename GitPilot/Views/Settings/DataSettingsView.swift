@@ -80,17 +80,17 @@ struct DataSettingsView: View {
             
             Section {
                 VStack(alignment: .leading, spacing: 12) {
-                    Label("Resetar Sistema", systemImage: "trash.fill")
+                    Label(loc.string("data.resetSystem"), systemImage: "trash.fill")
                         .font(.headline)
                         .foregroundStyle(.red)
                     
-                    Text("Esta ação irá remover TODOS os dados do GitPilot. Grupos, Repositórios, Logs e Histórico serão apagados permanentemente.")
+                    Text(loc.string("data.resetDescription"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     
                     HStack {
                         Spacer()
-                        Button("Limpar Tudo", role: .destructive) { showingResetConfirmation = true }
+                        Button(loc.string("data.clearAll"), role: .destructive) { showingResetConfirmation = true }
                             .buttonStyle(.borderedProminent)
                             .tint(.red)
                     }
@@ -119,13 +119,13 @@ struct DataSettingsView: View {
         } message: {
             Text(importResult ?? "")
         }
-                .alert("Resetar Sistema", isPresented: $showingResetConfirmation) {
-            Button("Resetar Tudo", role: .destructive) { resetSystem() }
-            Button("Cancelar", role: .cancel) {}
+                .alert(loc.string("data.resetSystem"), isPresented: $showingResetConfirmation) {
+            Button(loc.string("data.resetAll"), role: .destructive) { resetSystem() }
+            Button(loc.string("action.cancel"), role: .cancel) {}
         } message: {
-            Text("Tem certeza absoluta? Todos os dados serão perdidos permanentemente.")
+            Text(loc.string("data.resetConfirmation"))
         }
-        .alert("Error", isPresented: $showingImportError) {
+        .alert(loc.string("status.error"), isPresented: $showingImportError) {
             Button("OK") {}
         } message: {
             Text(errorMessage)
@@ -146,10 +146,10 @@ struct DataSettingsView: View {
             for log in checkLogs { modelContext.delete(log) }
             
             try modelContext.save()
-            exportResult = "Sistema resetado com sucesso."
+            exportResult = loc.string("data.resetSuccess")
             showingImportSuccess = true // Show success using import alert or export result text
         } catch {
-            errorMessage = "Erro ao resetar: \(error.localizedDescription)"
+            errorMessage = "\(loc.string("status.error")): \(error.localizedDescription)"
             showingImportError = true
         }
     }
