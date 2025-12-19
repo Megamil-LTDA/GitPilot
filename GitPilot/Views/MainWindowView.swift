@@ -694,7 +694,7 @@ struct RepositoryCard: View {
                     Image(systemName: repository.isEnabled ? "pause.fill" : "play.fill")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 14, height: 14)
                 }
                 .frame(width: 32, height: 32)
                 .buttonStyle(.bordered)

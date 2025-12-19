@@ -58,6 +58,9 @@ struct GitPilotApp: App {
                 .frame(width: 500, height: 450)
                 .environmentObject(appState)
                 .modelContainer(sharedModelContainer)
+                .onAppear {
+                    NSApp.activate(ignoringOtherApps: true)
+                }
         }
     }
 }
