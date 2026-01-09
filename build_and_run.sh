@@ -12,7 +12,16 @@ APP_PATH="${BUILD_DIR}/Build/Products/Release/${PROJECT_NAME}.app"
 
 echo "🛫 Building GitPilot..."
 
-# Create build directory
+# Clean up macOS metadata that can cause code signing issues
+echo "🧹 Cleaning macOS metadata..."
+find "${SCRIPT_DIR}" -name ".DS_Store" -delete 2>/dev/null || true
+xattr -cr "${SCRIPT_DIR}" 2>/dev/null || true
+
+# Clean and create build directory
+if [ -d "${BUILD_DIR}" ]; then
+    echo "🗑️  Removing old build..."
+    rm -rf "${BUILD_DIR}"
+fi
 mkdir -p "${BUILD_DIR}"
 
 # Build the project
