@@ -35,6 +35,25 @@ class GitMonitorService: ObservableObject {
     // true = error was notified, false = recovered/never had error
     private var errorNotifiedState: [UUID: Bool] = [:]
     
+    // MARK: - Pending Triggers System
+    
+    /// Structure to hold pending trigger information
+    struct PendingTrigger {
+        let repository: WatchedRepository
+        let trigger: TriggerRule
+        let commitHash: String
+        let commitMessage: String
+        let checkLog: CheckLog
+        let notificationId: String
+        var timeoutTimer: Timer?
+    }
+    
+    /// Pending triggers waiting for user confirmation
+    private var pendingTriggers: [String: PendingTrigger] = [:]
+    
+    /// Timeout duration for auto-execution (30 seconds)
+    private let confirmationTimeout: TimeInterval = 30
+    
     private init() { print("🚀 GitMonitorService init") }
     
     func setModelContext(_ context: ModelContext) { self.modelContext = context; print("📦 Context set") }
@@ -364,10 +383,166 @@ class GitMonitorService: ObservableObject {
         
         print("✅ Matched: \(matchingTrigger.name)")
         
-        // Send trigger start notifications (Telegram + Teams)
-        await sendTriggerStartNotifications(for: repository, commitHash: commitHash, commitMessage: commitMessage, triggerName: matchingTrigger.name)
+        // Request confirmation via notification before executing
+        await requestTriggerConfirmation(
+            repository: repository,
+            trigger: matchingTrigger,
+            commitHash: commitHash,
+            commitMessage: commitMessage,
+            checkLog: checkLog
+        )
+    }
+    
+    // MARK: - Trigger Confirmation System
+    
+    /// Request user confirmation before executing a trigger
+    private func requestTriggerConfirmation(
+        repository: WatchedRepository,
+        trigger: TriggerRule,
+        commitHash: String,
+        commitMessage: String,
+        checkLog: CheckLog
+    ) async {
+        // Create callback that will handle the user response
+        let callback: (Bool) -> Void = { [weak self] shouldExecute in
+            // We'll get the notificationId from the pending triggers lookup
+            Task { @MainActor in
+                guard let self = self else { return }
+                
+                // Find the pending trigger by matching repository and trigger
+                if let entry = self.pendingTriggers.first(where: { 
+                    $0.value.repository.id == repository.id && 
+                    $0.value.trigger.name == trigger.name &&
+                    $0.value.commitHash == commitHash
+                }) {
+                    if shouldExecute {
+                        await self.confirmPendingTrigger(notificationId: entry.key)
+                    } else {
+                        await self.rejectPendingTrigger(notificationId: entry.key)
+                    }
+                }
+            }
+        }
         
-        await executeTrigger(matchingTrigger, for: repository, commitHash: commitHash, commitMessage: commitMessage)
+        let notificationId = await notificationService.sendTriggerConfirmation(
+            repositoryName: repository.name,
+            triggerName: trigger.name,
+            commitMessage: commitMessage,
+            callback: callback
+        )
+        
+        // Store pending trigger
+        var pending = PendingTrigger(
+            repository: repository,
+            trigger: trigger,
+            commitHash: commitHash,
+            commitMessage: commitMessage,
+            checkLog: checkLog,
+            notificationId: notificationId
+        )
+        
+        // Start timeout timer
+        let timer = Timer.scheduledTimer(withTimeInterval: confirmationTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                await self?.handleTriggerTimeout(notificationId: notificationId)
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        pending.timeoutTimer = timer
+        
+        pendingTriggers[notificationId] = pending
+        
+        print("⏳ Trigger pending confirmation: \(trigger.name) for \(repository.name) (timeout: \(confirmationTimeout)s)")
+    }
+    
+    /// Confirm and execute a pending trigger
+    private func confirmPendingTrigger(notificationId: String) async {
+        guard let pending = pendingTriggers.removeValue(forKey: notificationId) else {
+            print("⚠️ No pending trigger found for: \(notificationId)")
+            return
+        }
+        
+        // Cancel timeout timer
+        pending.timeoutTimer?.invalidate()
+        
+        print("✅ Trigger confirmed: \(pending.trigger.name) for \(pending.repository.name)")
+        
+        // Send trigger start notifications (Telegram + Teams)
+        await sendTriggerStartNotifications(
+            for: pending.repository,
+            commitHash: pending.commitHash,
+            commitMessage: pending.commitMessage,
+            triggerName: pending.trigger.name
+        )
+        
+        // Execute the trigger
+        await executeTrigger(
+            pending.trigger,
+            for: pending.repository,
+            commitHash: pending.commitHash,
+            commitMessage: pending.commitMessage
+        )
+    }
+    
+    /// Reject a pending trigger - skip execution but update hash
+    private func rejectPendingTrigger(notificationId: String) async {
+        guard let pending = pendingTriggers.removeValue(forKey: notificationId) else {
+            print("⚠️ No pending trigger found for rejection: \(notificationId)")
+            return
+        }
+        
+        // Cancel timeout timer
+        pending.timeoutTimer?.invalidate()
+        
+        print("🚫 Trigger rejected: \(pending.trigger.name) for \(pending.repository.name)")
+        
+        // Update repository status
+        pending.repository.currentStatus = .idle
+        AppState.shared.globalStatus = .idle
+        
+        // Update check log
+        pending.checkLog.result = .noChanges
+        pending.checkLog.gitOutput = (pending.checkLog.gitOutput ?? "") + "\n🚫 Trigger rejeitado pelo usuário"
+        
+        // Save context
+        try? modelContext?.save()
+        
+        // Send notification about rejection
+        let loc = LocalizationManager.shared
+        await notificationService.send(
+            title: "🚫 \(loc.string("notification.triggerRejected"))",
+            body: pending.trigger.name,
+            subtitle: pending.repository.name
+        )
+    }
+    
+    /// Handle timeout - auto-execute the trigger
+    private func handleTriggerTimeout(notificationId: String) async {
+        guard let pending = pendingTriggers.removeValue(forKey: notificationId) else {
+            print("⚠️ No pending trigger found for timeout: \(notificationId)")
+            return
+        }
+        
+        print("⏰ Trigger timeout - auto-executing: \(pending.trigger.name) for \(pending.repository.name)")
+        
+        // Remove notification from screen
+        await notificationService.handleTimeout(notificationId: notificationId)
+        
+        // Send trigger start notifications (Telegram + Teams)
+        await sendTriggerStartNotifications(
+            for: pending.repository,
+            commitHash: pending.commitHash,
+            commitMessage: pending.commitMessage,
+            triggerName: pending.trigger.name
+        )
+        
+        // Execute the trigger
+        await executeTrigger(
+            pending.trigger,
+            for: pending.repository,
+            commitHash: pending.commitHash,
+            commitMessage: pending.commitMessage
+        )
     }
     
     func executeTrigger(_ trigger: TriggerRule, for repository: WatchedRepository, commitHash: String, commitMessage: String) async -> BuildLog? {
@@ -508,12 +683,24 @@ class GitMonitorService: ObservableObject {
             await notificationService.sendBuildNotification(repositoryName: repository.name, triggerName: buildLog.triggerName, success: success, duration: buildLog.formattedDuration)
         }
         
+        // Telegram notification with type checking
         if group.telegramEnabled && group.telegramConfigured {
-            await TelegramService.shared.sendBuildNotification(token: group.telegramBotToken!, chatId: group.telegramChatId!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+            let shouldSendTelegram = success ? group.telegramNotifySuccess : group.telegramNotifyFailure
+            if shouldSendTelegram {
+                await TelegramService.shared.sendBuildNotification(token: group.telegramBotToken!, chatId: group.telegramChatId!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+            } else {
+                print("🔕 Telegram build notification disabled for \(success ? "success" : "failure")")
+            }
         }
         
+        // Teams notification with type checking
         if group.teamsEnabled && group.teamsConfigured {
-            await TeamsService.shared.sendBuildNotification(webhookUrl: group.teamsWebhookUrl!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+            let shouldSendTeams = success ? group.teamsNotifySuccess : group.teamsNotifyFailure
+            if shouldSendTeams {
+                await TeamsService.shared.sendBuildNotification(webhookUrl: group.teamsWebhookUrl!, repositoryName: repository.name, branch: repository.branch, commitHash: buildLog.shortCommitHash, commitMessage: buildLog.commitMessage, triggerName: buildLog.triggerName, duration: buildLog.formattedDuration, success: success)
+            } else {
+                print("🔕 Teams build notification disabled for \(success ? "success" : "failure")")
+            }
         }
     }
     
@@ -656,6 +843,12 @@ func forceBuild(for repository: WatchedRepository) async {
             return
         }
         
+        // Check if new commit notifications are enabled
+        guard group.telegramNotifyNewCommit else {
+            print("🔕 Telegram new commit notification disabled")
+            return
+        }
+        
         await TelegramService.shared.sendNewCommitNotification(
             token: token,
             chatId: chatId,
@@ -683,10 +876,11 @@ func forceBuild(for repository: WatchedRepository) async {
             print("⚠️ Could not fetch commit author/date: \(error)")
         }
         
-        // Telegram notification
+        // Telegram notification with type checking
         if group.telegramEnabled && group.telegramConfigured,
            let token = group.telegramBotToken,
-           let chatId = group.telegramChatId {
+           let chatId = group.telegramChatId,
+           group.telegramNotifyTriggerStart {
             await TelegramService.shared.sendTriggerStartNotification(
                 token: token,
                 chatId: chatId,
@@ -698,11 +892,14 @@ func forceBuild(for repository: WatchedRepository) async {
                 commitDate: commitDate,
                 triggerName: triggerName
             )
+        } else if group.telegramEnabled && group.telegramConfigured && !group.telegramNotifyTriggerStart {
+            print("🔕 Telegram trigger start notification disabled")
         }
         
-        // Teams notification
+        // Teams notification with type checking
         if group.teamsEnabled && group.teamsConfigured,
-           let webhookUrl = group.teamsWebhookUrl {
+           let webhookUrl = group.teamsWebhookUrl,
+           group.teamsNotifyTriggerStart {
             await TeamsService.shared.sendTriggerStartNotification(
                 webhookUrl: webhookUrl,
                 repositoryName: repository.name,
@@ -713,6 +910,8 @@ func forceBuild(for repository: WatchedRepository) async {
                 commitDate: commitDate,
                 triggerName: triggerName
             )
+        } else if group.teamsEnabled && group.teamsConfigured && !group.teamsNotifyTriggerStart {
+            print("🔕 Teams trigger start notification disabled")
         }
     }
     
@@ -724,6 +923,12 @@ func forceBuild(for repository: WatchedRepository) async {
               let token = group.telegramBotToken,
               let chatId = group.telegramChatId else {
             print("📭 No Telegram configured for error notification")
+            return
+        }
+        
+        // Check if error notifications are enabled
+        guard group.telegramNotifyError else {
+            print("🔕 Telegram error notification disabled")
             return
         }
         
@@ -743,6 +948,12 @@ func forceBuild(for repository: WatchedRepository) async {
               let token = group.telegramBotToken,
               let chatId = group.telegramChatId else {
             print("📭 No Telegram configured for recovery notification")
+            return
+        }
+        
+        // Check if error notifications are enabled (recovery is part of error lifecycle)
+        guard group.telegramNotifyError else {
+            print("🔕 Telegram recovery notification disabled")
             return
         }
         

@@ -10,6 +10,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct GitPilotApp: App {
@@ -67,8 +68,14 @@ struct GitPilotApp: App {
 }
 
 // MARK: - App Delegate for Background Startup
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Setup notification delegate and categories
+        UNUserNotificationCenter.current().delegate = self
+        Task {
+            await NotificationService.shared.setupCategories()
+        }
+        
         // Auto-start monitoring after app is fully initialized
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             self.autoStartMonitoring()
@@ -94,6 +101,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("❌ Failed to auto-start monitoring: \(error)")
             }
         }
+    }
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    
+    /// Handle notification actions when user clicks a button
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let actionId = response.actionIdentifier
+        let userInfo = response.notification.request.content.userInfo
+        
+        // Handle trigger confirmation actions
+        if let notificationId = userInfo["notificationId"] as? String {
+            Task {
+                await NotificationService.shared.handleNotificationAction(
+                    notificationId: notificationId,
+                    actionId: actionId
+                )
+            }
+        }
+        
+        completionHandler()
+    }
+    
+    /// Show notifications even when app is in foreground
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
     }
 }
 

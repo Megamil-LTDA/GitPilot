@@ -250,6 +250,13 @@ struct Strings {
         "time.10min": "10 min",
         "time.30min": "30 min",
         "time.1hour": "1 hora",
+        
+        // Trigger Confirmation Notifications
+        "notification.triggerDetected": "Trigger Detectado",
+        "notification.confirmExecute": "Executar",
+        "notification.reject": "Rejeitar",
+        "notification.autoExecuteIn": "Execução automática em 30s",
+        "notification.triggerRejected": "Trigger ignorado",
     ]
     
     // MARK: - English
@@ -439,6 +446,13 @@ struct Strings {
         "time.10min": "10 min",
         "time.30min": "30 min",
         "time.1hour": "1 hour",
+        
+        // Trigger Confirmation Notifications
+        "notification.triggerDetected": "Trigger Detected",
+        "notification.confirmExecute": "Execute",
+        "notification.reject": "Reject",
+        "notification.autoExecuteIn": "Auto-executing in 30s",
+        "notification.triggerRejected": "Trigger ignored",
     ]
     
     // MARK: - Spanish
@@ -628,6 +642,13 @@ struct Strings {
         "time.10min": "10 min",
         "time.30min": "30 min",
         "time.1hour": "1 hora",
+        
+        // Trigger Confirmation Notifications
+        "notification.triggerDetected": "Trigger Detectado",
+        "notification.confirmExecute": "Ejecutar",
+        "notification.reject": "Rechazar",
+        "notification.autoExecuteIn": "Ejecución automática en 30s",
+        "notification.triggerRejected": "Trigger ignorado",
     ]
 }
 
